@@ -1,0 +1,1370 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#f8fafc">
+<title>DISPATCH COMMAND CENTER — PAM-OS</title>
+
+<!-- Library -->
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+<style>
+:root{
+    --bg:#f1f5f9;
+    --panel:#ffffff;
+    --panel-solid:#ffffff;
+    --line:#cbd5e1;
+    --cyan:#0284c7;
+    --emerald:#059669;
+    --amber:#d97706;
+    --rose:#e11d48;
+    --purple:#7c3aed;
+}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%;background:var(--bg);color:#0f172a}
+body{
+    font-family:'Plus Jakarta Sans',system-ui,sans-serif;
+    background:
+      radial-gradient(circle at 50% -20%,rgba(14,116,144,0.08),transparent 40%),
+      radial-gradient(circle at 100% 50%,rgba(30,58,138,0.05),transparent 35%),
+      linear-gradient(180deg,#f8fafc 0%,#e2e8f0 100%);
+    background-attachment: fixed;
+}
+.font-heading{font-family:'Outfit',sans-serif}
+.font-mono-code{font-family:'JetBrains Mono',monospace}
+
+.panel{
+    background:#ffffff;
+    border:1px solid #cbd5e1;
+    box-shadow:0 10px 25px -5px rgba(0,0,0,0.08), 0 8px 10px -6px rgba(0,0,0,0.05);
+}
+.panel-glow{box-shadow:0 0 0 1px rgba(2,132,199,0.2),0 10px 30px -10px rgba(2,132,199,0.15)}
+
+@keyframes pulseGreen{0%,100%{box-shadow:0 0 0 0 rgba(5,150,105,0.4)}50%{box-shadow:0 0 0 6px rgba(5,150,105,0)}}
+@keyframes pulseRed{0%,100%{box-shadow:0 0 0 0 rgba(225,29,72,0.4)}50%{box-shadow:0 0 0 6px rgba(225,29,72,0)}}
+@keyframes marquee{from{transform:translateX(100%)}to{transform:translateX(-100%)}}
+
+.realtime-dot{animation:pulseGreen 2s infinite}
+.danger-dot{animation:pulseRed 2s infinite}
+.marquee{animation:marquee 35s linear infinite}
+.marquee:hover{animation-play-state:paused}
+
+.kpi-card{transition:all .25s ease}
+.kpi-card:hover{transform:translateY(-3px);border-color:rgba(2,132,199,0.5);box-shadow:0 15px 30px -10px rgba(2,132,199,0.2)}
+
+.progress-track{height:8px;border-radius:99px;background:#e2e8f0;overflow:hidden}
+.progress-fill{height:100%;border-radius:99px;transition:width .6s cubic-bezier(0.4,0,0.2,1)}
+
+.cmd-table tbody tr{transition:background .15s ease}
+.cmd-table tbody tr:hover{background:rgba(241,245,249,0.8)}
+.cmd-table th{white-space:nowrap}
+.status-badge{white-space:nowrap}
+
+.fullscreen-mode{
+    position:fixed!important;inset:0!important;z-index:999!important;
+    width:100vw!important;height:100vh!important;
+    overflow:auto!important;border-radius:0!important;
+    padding:20px 20px 60px 20px!important;background:#f8fafc!important;
+}
+.fullscreen-mode .full-hide{display:none!important}
+
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#e2e8f0}
+::-webkit-scrollbar-thumb{background:#94a3b8;border-radius:10px}
+::-webkit-scrollbar-thumb:hover{background:#64748b}
+
+input,select{color-scheme:light}
+
+/* =========================================================
+   LAYOUT REDESIGN — OPERASIONAL / MUDAH DIBACA
+   Fokus: hirarki informasi, tombol jelas, layar besar & mobile
+   ========================================================= */
+:root{
+    --ui-radius:14px;
+    --ui-gap:16px;
+}
+
+/* Header tetap terlihat saat operator menggulir */
+#command-center > header{
+    position:sticky;
+    top:10px;
+    z-index:40;
+}
+
+/* Judul dan kontrol lebih mudah dipindai */
+#command-center > header h1{
+    line-height:1.15;
+}
+#command-center > header button,
+#command-center > header select{
+    min-height:42px;
+}
+
+/* Navigasi utama dibuat sebagai "mode kerja" */
+#command-center > header .mt-5{
+    gap:12px;
+}
+#command-center > header .mt-5 > div:first-child{
+    box-shadow:inset 0 0 0 1px rgba(148,163,184,.18);
+}
+
+/* KPI lebih tegas: angka dulu, keterangan kemudian */
+#summary-cards .kpi-card{
+    min-height:150px;
+    position:relative;
+    overflow:hidden;
+}
+#summary-cards .kpi-card::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:0;
+    height:3px;
+    background:currentColor;
+    opacity:.16;
+}
+
+/* Dashboard table */
+.cmd-table{
+    min-width:860px;
+}
+.cmd-table thead th{
+    position:sticky;
+    top:0;
+    z-index:12;
+}
+.cmd-table tbody td:first-child,
+.cmd-table thead th:first-child{
+    position:sticky;
+    left:0;
+    z-index:11;
+    background:#fff;
+}
+.cmd-table thead th:first-child{
+    z-index:13;
+    background:#f1f5f9;
+}
+.cmd-table tbody tr:hover td:first-child{
+    background:#f8fafc;
+}
+
+/* Status counters dibuat mudah dipindai */
+#view-dashboard .grid > .panel,
+#view-form-data .panel{
+    border-radius:16px;
+}
+
+/* Tombol aksi minimal nyaman disentuh */
+button{
+    min-height:40px;
+}
+.action{
+    min-height:42px !important;
+}
+
+/* Form: label lebih kuat dan field konsisten */
+.field-label{
+    display:block;
+    margin-bottom:6px;
+    font-size:11px;
+    font-weight:800;
+    color:#475569;
+    text-transform:uppercase;
+    letter-spacing:.055em;
+}
+.field{
+    min-height:44px !important;
+}
+
+/* Daftar program/realisasi: bedakan data utama dan aksi */
+#prog-list-container > div,
+#real-list-container > div{
+    border-radius:12px;
+}
+
+/* Scroll area memberi petunjuk bahwa data dapat digulir */
+#dashboard-table-body:empty::after{
+    content:"Belum ada data personil.";
+}
+
+/* Login tetap fokus */
+#login-overlay input{
+    min-height:46px;
+}
+#login-overlay button[type="submit"]{
+    min-height:46px;
+}
+
+/* Mode layar besar / Smart TV */
+@media (min-width:1400px){
+    #command-center{
+        padding-left:28px!important;
+        padding-right:28px!important;
+    }
+    #summary-cards .kpi-card{
+        min-height:165px;
+    }
+    .cmd-table{
+        font-size:13px;
+    }
+}
+
+/* Tablet */
+@media (max-width:1100px){
+    #command-center > header{
+        position:relative;
+        top:auto;
+    }
+}
+
+/* Ponsel: jangan paksa tabel mengecil; gunakan scroll horizontal */
+@media (max-width:700px){
+    body{
+        font-size:14px;
+    }
+    #command-center{
+        padding:10px!important;
+    }
+    #command-center > header{
+        padding:16px!important;
+    }
+    #command-center > header .mt-5{
+        align-items:stretch;
+    }
+    #command-center > header .mt-5 > div:first-child{
+        width:100%;
+        justify-content:stretch;
+    }
+    #command-center > header .mt-5 > div:first-child button{
+        flex:1;
+        min-width:0;
+    }
+    #command-center > header .mt-5 > div:last-child{
+        width:100%;
+    }
+    #period-filter{
+        width:100%;
+        min-height:42px;
+    }
+    #summary-cards .kpi-card{
+        min-height:138px;
+        padding:16px!important;
+    }
+    #summary-cards .kpi-card .font-heading.text-3xl{
+        font-size:26px;
+    }
+    .cmd-table{
+        min-width:780px;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{
+        animation-duration:.01ms!important;
+        animation-iteration-count:1!important;
+        scroll-behavior:auto!important;
+        transition-duration:.01ms!important;
+    }
+}
+
+</style>
+</head>
+
+<body class="min-h-screen pb-16 md:pb-24">
+
+<!-- LOGIN MODAL -->
+<div id="login-overlay" class="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="panel panel-glow w-full max-w-md rounded-2xl p-8">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center justify-center w-auto h-16 px-4 rounded-2xl bg-white border border-slate-200 mb-4 shadow-sm">
+                <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Logo_KAI_Services.svg?utm_source=id.wikipedia.org&utm_campaign=index&utm_content=original" alt="Logo KAI Services" class="h-8 w-auto object-contain">
+            </div>
+            <h1 class="font-heading text-xl md:text-2xl font-bold text-slate-900 tracking-wide">Board Supervisi</h1>
+            <p class="text-xs text-slate-600 font-semibold mt-1.5">PAM • Regional 2 Bandung</p>
+        </div>
+        <form id="login-form" class="space-y-4">
+            <div id="login-error" class="hidden p-3.5 rounded-xl bg-rose-50 border border-rose-300 text-rose-700 text-xs text-center font-bold">
+                ⚠ Nama pengguna atau kata sandi salah.
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Nama Waspam/Korlap/Danru</label>
+                <input id="login-user" required autocomplete="username" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 text-sm text-slate-900 font-medium outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 transition" placeholder="Masukkan username">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1.5 uppercase tracking-wider">Kata Sandi</label>
+                <input id="login-pass" type="password" required autocomplete="current-password" class="w-full bg-slate-50 border border-slate-300 rounded-xl px-3.5 py-3 text-sm text-slate-900 font-medium outline-none focus:border-sky-600 focus:ring-2 focus:ring-sky-500/20 transition" placeholder="Masukkan password">
+            </div>
+            <button type="submit" class="w-full mt-2 py-3.5 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-heading font-bold text-sm shadow-md shadow-sky-600/20 transition">Masuk</button>
+        </form>
+        <div class="text-center text-[11px] text-slate-500 tracking-widest uppercase mt-6 font-bold">AMK-Operational Support</div>
+    </div>
+</div>
+
+<!-- MODAL LIHAT PROGRAM BELUM TEREALISASI -->
+<div id="modal-unrealized" class="hidden fixed inset-0 z-[110] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="panel panel-glow w-full max-w-lg rounded-2xl p-6 bg-white shadow-2xl">
+        <div class="flex justify-between items-center pb-4 border-b border-slate-200 mb-4">
+            <div>
+                <h3 id="modal-unrealized-title" class="font-heading text-base font-bold text-slate-900">Program Belum Terealisasi</h3>
+                <p class="text-xs text-slate-500 font-medium mt-0.5">Daftar lokasi jadwal kunjungan yang belum dikunjungi</p>
+            </div>
+            <button onclick="closeUnrealizedModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold flex items-center justify-center transition">✕</button>
+        </div>
+        <div id="modal-unrealized-body" class="max-h-[320px] overflow-auto space-y-2.5 pr-1">
+            <!-- Konten Dinamis -->
+        </div>
+        <div class="mt-6 pt-4 border-t border-slate-200 flex justify-end">
+            <button onclick="closeUnrealizedModal()" class="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-heading text-xs font-bold transition shadow-sm">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<!-- MAIN COMMAND CENTER -->
+<main id="command-center" class="max-w-[1900px] mx-auto p-3 md:p-6 space-y-5">
+
+    <!-- TOP ALERT TICKER -->
+    <div class="panel rounded-xl h-11 flex items-center overflow-hidden border-rose-300 bg-rose-50">
+        <div class="shrink-0 bg-rose-600 text-white h-full px-4 flex items-center font-heading font-bold text-xs tracking-wider gap-2">
+            <span class="danger-dot inline-block w-2 h-2 rounded-full bg-white"></span>INFO AMK
+        </div>
+        <div class="overflow-hidden flex-1 h-full flex items-center px-4">
+            <div id="ticker-text" class="marquee whitespace-nowrap text-xs text-rose-800 font-bold"></div>
+        </div>
+        <div id="last-sync" class="hidden md:block shrink-0 px-4 text-[11px] text-slate-600 font-mono-code font-bold"></div>
+    </div>
+
+    <!-- HEADER -->
+    <header class="panel panel-glow rounded-2xl p-5 md:p-6">
+        <div class="flex flex-col xl:flex-row gap-6 justify-between items-center">
+            <div class="flex items-center gap-4 w-full xl:w-auto">
+                <!-- Logo KAI Services -->
+                <div class="w-24 md:w-28 h-14 md:h-16 rounded-2xl bg-white border border-slate-200 flex items-center justify-center shrink-0 shadow-sm p-2">
+                    <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Logo_KAI_Services.svg?utm_source=id.wikipedia.org&utm_campaign=index&utm_content=original" alt="Logo KAI Services" class="w-full h-full object-contain">
+                </div>
+                <div>
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <h1 class="font-heading font-extrabold text-xl md:text-2xl text-slate-900 tracking-wide">PAM - BOARD SUPERVISI</h1>
+                        <span class="text-[10px] font-heading font-bold px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300">LIVE</span>
+                    </div>
+                    <p class="text-xs text-slate-600 font-semibold mt-1">MONITORING KUNJUNGAN • PAM Regional 2 Bandung</p>
+                </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-center xl:justify-end gap-3 w-full xl:w-auto">
+                <!-- Jam Realtime -->
+                <div class="panel rounded-xl px-5 py-2 text-center min-w-[220px] border-slate-300 bg-slate-50">
+                    <div id="live-clock" class="font-mono-code text-2xl md:text-3xl font-extrabold text-sky-600 tracking-wider leading-tight">00:00:00</div>
+                    <div id="live-date" class="text-[11px] text-slate-600 font-bold uppercase tracking-wider mt-0.5">—</div>
+                </div>
+
+                <!-- Tombol Kontrol -->
+                <button id="fullscreen-btn" onclick="toggleFullscreen()" class="px-4 py-3 rounded-xl bg-slate-200 hover:bg-slate-300 border border-slate-300 text-slate-800 text-xs font-heading font-bold transition flex items-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg>
+                    Layar Penuh
+                </button>
+                <button onclick="handleLogout()" class="px-4 py-3 rounded-xl bg-rose-100 hover:bg-rose-200 border border-rose-300 text-rose-700 text-xs font-heading font-bold transition flex items-center gap-2 shadow-sm">
+                    <svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                    Keluar
+                </button>
+            </div>
+        </div>
+
+        <!-- NAVIGASI & FILTER -->
+        <div class="mt-5 pt-4 border-t border-slate-200 flex flex-wrap gap-3 items-center justify-between">
+            <div class="bg-slate-100 p-1.5 rounded-xl border border-slate-300 flex gap-1.5">
+                <button onclick="switchView('dashboard')" id="btn-nav-dashboard" class="px-4 py-2 rounded-lg bg-sky-600 text-white font-heading text-xs font-bold transition shadow-sm">DASHBOARD</button>
+                <button onclick="switchView('form-data')" id="btn-nav-form" class="px-4 py-2 rounded-lg text-slate-700 hover:text-slate-900 font-heading text-xs font-bold transition">INPUT DATA</button>
+            </div>
+            <div class="flex flex-wrap gap-2.5 items-center">
+                <label class="text-xs text-slate-700 font-heading font-bold">FILTER PERIODE:</label>
+                <select id="period-filter" onchange="refreshAllUI()" class="bg-white border border-slate-300 rounded-xl px-3.5 py-2 text-xs font-bold text-slate-800 outline-none focus:border-sky-600 transition shadow-sm">
+                    <option value="all">Semua Periode</option>
+                    <option value="today">Hari Ini</option>
+                    <option value="week">Minggu Ini</option>
+                    <option value="month">Bulan Ini</option>
+                </select>
+            </div>
+        </div>
+    </header>
+
+    <!-- KPI STATS -->
+    <section id="summary-cards" class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="kpi-card panel rounded-2xl p-5 border-sky-300">
+            <div class="flex justify-between items-start">
+                <span class="text-xs font-heading font-bold text-slate-600 uppercase tracking-wider">Total Program</span>
+                <span class="p-2 rounded-xl bg-sky-100 text-sky-700 font-bold border border-sky-200">📋</span>
+            </div>
+            <div id="metric-total-program" class="font-heading text-3xl font-extrabold text-sky-700 mt-3">0</div>
+            <div class="text-xs text-slate-500 font-semibold mt-1">Rencana kunjungan</div>
+        </div>
+        <div class="kpi-card panel rounded-2xl p-5 border-emerald-300">
+            <div class="flex justify-between items-start">
+                <span class="text-xs font-heading font-bold text-slate-600 uppercase tracking-wider">Total Realisasi</span>
+                <span class="p-2 rounded-xl bg-emerald-100 text-emerald-700 font-bold border border-emerald-200">✓</span>
+            </div>
+            <div id="metric-total-realisasi" class="font-heading text-3xl font-extrabold text-emerald-700 mt-3">0</div>
+            <div class="text-xs text-slate-500 font-semibold mt-1">Kunjungan Dilaksanakan</div>
+        </div>
+        <div class="kpi-card panel rounded-2xl p-5 border-amber-300">
+            <div class="flex justify-between items-start">
+                <span class="text-xs font-heading font-bold text-slate-600 uppercase tracking-wider">Persentase Capaian</span>
+                <span class="p-2 rounded-xl bg-amber-100 text-amber-700 font-bold border border-amber-200">📊</span>
+            </div>
+            <div id="metric-capaian" class="font-heading text-3xl font-extrabold text-amber-700 mt-3">0%</div>
+            <div class="progress-track mt-3"><div id="capaian-progress" class="progress-fill bg-amber-500" style="width:0%"></div></div>
+        </div>
+        <div class="kpi-card panel rounded-2xl p-5 border-purple-300">
+            <div class="flex justify-between items-start">
+                <span class="text-xs font-heading font-bold text-slate-600 uppercase tracking-wider">Personil Sesuai Target</span>
+                <span class="p-2 rounded-xl bg-purple-100 text-purple-700 font-bold border border-purple-200">👤</span>
+            </div>
+            <div id="metric-status-supervisi" class="font-heading text-3xl font-extrabold text-purple-700 mt-3">0 / 0</div>
+            <div id="metric-personil-desc" class="text-xs text-slate-500 font-semibold mt-1">Target tercapai penuh</div>
+        </div>
+    </section>
+
+    <!-- DASHBOARD VIEW -->
+    <section id="view-dashboard" class="space-y-5">
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+            <!-- CHART -->
+            <div class="panel panel-glow rounded-2xl p-5 xl:col-span-5 flex flex-col justify-between">
+                <div>
+                    <div class="flex items-start justify-between gap-3 mb-4">
+                        <div>
+                            <h2 class="font-heading text-sm md:text-base font-bold text-sky-800 tracking-wide">Grafik Kinerja Personil</h2>
+                            <p class="text-xs text-slate-600 font-semibold mt-0.5">Program vs Realisasi Kunjungan Lapangan</p>
+                        </div>
+                        <span class="px-2.5 py-1 rounded-lg bg-sky-100 border border-sky-300 text-[10px] font-heading font-bold text-sky-700">GRAFIK LIVE</span>
+                    </div>
+                </div>
+                <div class="h-[340px] md:h-[390px] relative w-full"><canvas id="commandTrendChart"></canvas></div>
+            </div>
+
+            <!-- STATUS BOARD TABLE -->
+            <div class="panel rounded-2xl p-5 xl:col-span-7">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-4 border-b border-slate-200">
+                    <div>
+                        <h2 class="font-heading text-sm md:text-base font-bold text-slate-900">Papan Status Pengawasan Lapangan</h2>
+                        <p class="text-xs text-slate-600 font-semibold mt-0.5">Urutan prioritas: <span class="text-emerald-700">Selesai</span> → <span class="text-amber-700">Sebagian</span> → <span class="text-rose-700">Belum</span> → Tanpa Jadwal</p>
+                    </div>
+                    <div>
+                        <button onclick="exportDataToExcel()" class="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-heading text-xs font-bold transition flex items-center gap-2 shadow-md shadow-emerald-600/20">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            Ekspor Laporan Excel
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Statistik Ringkas Status -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3 my-4">
+                    <div class="rounded-xl bg-emerald-50 border border-emerald-300 p-3 shadow-sm">
+                        <div class="text-[10px] font-heading font-bold text-emerald-700 uppercase tracking-wider">Selesai</div>
+                        <div id="count-complete" class="font-heading text-2xl font-extrabold text-emerald-800 mt-1">0</div>
+                    </div>
+                    <div class="rounded-xl bg-amber-50 border border-amber-300 p-3 shadow-sm">
+                        <div class="text-[10px] font-heading font-bold text-amber-700 uppercase tracking-wider">Sebagian</div>
+                        <div id="count-partial" class="font-heading text-2xl font-extrabold text-amber-800 mt-1">0</div>
+                    </div>
+                    <div class="rounded-xl bg-rose-50 border border-rose-300 p-3 shadow-sm">
+                        <div class="text-[10px] font-heading font-bold text-rose-700 uppercase tracking-wider">Belum</div>
+                        <div id="count-pending" class="font-heading text-2xl font-extrabold text-rose-800 mt-1">0</div>
+                    </div>
+                    <div class="rounded-xl bg-slate-100 border border-slate-300 p-3 shadow-sm">
+                        <div class="text-[10px] font-heading font-bold text-slate-700 uppercase tracking-wider">Tanpa Jadwal</div>
+                        <div id="count-none" class="font-heading text-2xl font-extrabold text-slate-800 mt-1">0</div>
+                    </div>
+                </div>
+
+                <!-- Tabel Data -->
+                <div class="text-[10px] text-slate-500 font-bold mb-2 md:hidden">Geser tabel ke kiri/kanan untuk melihat semua kolom.</div>
+                <div class="overflow-auto max-h-[440px] rounded-xl border border-slate-200 shadow-inner bg-white">
+                    <table class="cmd-table w-full text-left border-collapse">
+                        <thead class="sticky top-0 z-10 bg-slate-100 text-slate-700 border-b border-slate-300">
+                            <tr class="text-[11px] uppercase font-heading font-bold tracking-wider">
+                                <th class="p-3">Nama Personil</th>
+                                <th class="p-3">Area Kerja</th>
+                                <th class="p-3 text-center">Prog</th>
+                                <th class="p-3 text-center">Real</th>
+                                <th class="p-3 text-center">Capaian</th>
+                                <th class="p-3 text-center">Status</th>
+                                <th class="p-3 text-center">Aksi Cepat GPS</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dashboard-table-body" class="divide-y divide-slate-200 text-xs font-medium text-slate-800"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FORM VIEW -->
+    <section id="view-form-data" class="hidden">
+        <div class="panel rounded-2xl p-4 md:p-5 mb-5 border-slate-300 bg-white">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                <div>
+                    <div class="text-[10px] font-heading font-extrabold text-slate-500 uppercase tracking-[.16em]">Alur Input</div>
+                    <div class="text-sm font-heading font-extrabold text-slate-900 mt-1">Isi dari kiri ke kanan: Profil → Program → Realisasi</div>
+                </div>
+                <div class="flex flex-wrap items-center gap-2 text-[11px] font-bold">
+                    <span class="px-3 py-2 rounded-lg bg-amber-50 text-amber-700 border border-amber-200">01 Profil</span>
+                    <span class="text-slate-400">→</span>
+                    <span class="px-3 py-2 rounded-lg bg-sky-50 text-sky-700 border border-sky-200">02 Program</span>
+                    <span class="text-slate-400">→</span>
+                    <span class="px-3 py-2 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">03 Realisasi</span>
+                </div>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+            <!-- PROFILE FORM -->
+            <div class="panel rounded-2xl p-6 border-amber-300 lg:col-span-3">
+                <div class="border-b border-slate-200 pb-3.5 mb-5">
+                    <h2 class="font-heading text-sm font-bold text-amber-700 flex items-center gap-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> 01 • PROFIL PERSONIL
+                    </h2>
+                    <p class="text-xs text-slate-600 font-semibold mt-1">Pilih personil lalu lengkapi identitas dan wilayah kerja</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label class="field-label">Pilih Nama Personil</label>
+                        <select id="select-supervisor" onchange="loadSupervisorAllData(this.value)" class="field"></select>
+                    </div>
+                    <div><label class="field-label">Nama Lengkap Personil</label><input id="input-nama" class="field" placeholder="Contoh: Ranni Vidiawan"></div>
+                    <div><label class="field-label">NIPKWT</label><input id="input-nip" class="field" placeholder="Contoh: 502xxxx"></div>
+                    <div><label class="field-label">Jabatan</label><input id="input-jabatan" class="field" placeholder="Contoh: Waspam / Korlap / Danru"></div>
+                    <div><label class="field-label">Area Kerja</label><input id="input-area" class="field" placeholder="Contoh: PAM RMU Bandung"></div>
+                    <div class="grid grid-cols-3 gap-2.5 pt-3">
+                        <button onclick="saveSupervisorProfile()" class="action amber">Simpan</button>
+                        <button onclick="resetProfileFields()" class="action cyan">Baru</button>
+                        <button onclick="deleteSupervisorProfile()" class="action red">Hapus</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PROGRAM FORM -->
+            <div class="panel rounded-2xl p-6 border-sky-300 lg:col-span-4">
+                <div class="border-b border-slate-200 pb-3.5 mb-5 flex justify-between items-center">
+                    <div>
+                        <h2 class="font-heading text-sm font-bold text-sky-700 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-sky-500"></span> 02 • PROGRAM KUNJUNGAN
+                        </h2>
+                        <p class="text-xs text-slate-600 font-semibold mt-1">Masukkan lokasi dan tanggal target kunjungan</p>
+                    </div>
+                    <span id="badge-total-prog" class="text-xs font-heading font-bold text-sky-700 bg-sky-100 border border-sky-300 px-3 py-1 rounded-xl shadow-sm">0 Program</span>
+                </div>
+                <div class="space-y-4">
+                    <div><label class="field-label">Tanggal Rencana</label><input type="date" id="prog-date" class="field"></div>
+                    <div><label class="field-label">Lokasi Rencana</label><input id="prog-lokasi" class="field" placeholder="Contoh: Stasiun Hall Bandung"></div>
+                    <button onclick="addProgramItem()" class="w-full py-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-heading text-xs font-bold shadow-md shadow-sky-600/20 transition">＋ Tambah Program Rencana</button>
+                    <div class="pt-2">
+                        <label class="field-label mb-2">Daftar Program Terdaftar</label>
+                        <div id="prog-list-container" class="max-h-[300px] overflow-auto space-y-2.5 pr-1"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- REALISASI FORM -->
+            <div class="panel rounded-2xl p-6 border-emerald-300 lg:col-span-5">
+                <div class="border-b border-slate-200 pb-3.5 mb-5 flex justify-between items-center">
+                    <div>
+                        <h2 class="font-heading text-sm font-bold text-emerald-700 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> 03 • REALISASI KUNJUNGAN
+                        </h2>
+                        <p class="text-xs text-slate-600 font-semibold mt-1">Catat kunjungan yang benar-benar terlaksana</p>
+                    </div>
+                    <span id="badge-total-real" class="text-xs font-heading font-bold text-emerald-700 bg-emerald-100 border border-emerald-300 px-3 py-1 rounded-xl shadow-sm">0 Realisasi</span>
+                </div>
+                <div class="space-y-4">
+                    <div><label class="field-label">Tanggal Realisasi</label><input type="date" id="real-date" class="field"></div>
+                    <div>
+                        <label class="field-label">Lokasi Aktual (Pilih dari Program / Input Lain)</label>
+                        <select id="real-lokasi-select" onchange="handleRealLokasiSelectChange(this.value)" class="field mb-2">
+                            <option value="">-- Pilih dari Program Kunjungan --</option>
+                        </select>
+                        <input id="real-lokasi" class="field hidden" placeholder="Masukkan lokasi aktual lain...">
+                    </div>
+                    <div><label class="field-label">Catatan / Kendala Lapangan</label><input id="real-catatan" class="field" placeholder="Contoh: Sesuai jadwal, situasi aman"></div>
+                    <button onclick="addRealisasiItem()" class="w-full py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-heading text-xs font-bold shadow-md shadow-emerald-600/20 transition">＋ Tambah Realisasi Lapangan</button>
+                    <div class="pt-2">
+                        <label class="field-label mb-2">Daftar Realisasi Terdaftar</label>
+                        <div id="real-list-container" class="max-h-[250px] overflow-auto space-y-2.5 pr-1"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER RUNNING TEXT -->
+    <footer class="panel rounded-2xl py-3.5 px-5 overflow-hidden mt-8 mb-4 border-sky-300 flex items-center bg-slate-50 shadow-sm">
+        <div class="shrink-0 font-heading font-bold text-xs text-sky-700 mr-5 flex items-center gap-2.5">
+            <span class="p-1 rounded-lg bg-sky-100 border border-sky-300">🛡️</span> PAM-OS SYSTEM @2026
+        </div>
+        <div class="overflow-hidden flex-1 relative">
+            <div class="marquee whitespace-nowrap text-xs text-slate-800 font-bold">
+                🛡️ <strong class="text-sky-700">PAM KAI SERVICES</strong> — Sistem Keamanan Terintegrasi & Pengawasan 24/7 &nbsp;&bull;&nbsp; 
+                📍 <strong class="text-emerald-700">AREA OPERASIONAL:</strong> Stasiun, dan Perkantoran Wilayah Daop 2 Bandung &nbsp;&bull;&nbsp; 
+                ⚡ <strong class="text-amber-700">PENGINGAT SISTEM:</strong> Pastikan seluruh laporan realisasi dan target supervisi harian tercatat secara akurat &nbsp;&bull;&nbsp; 
+                🔒 Siaga Operasional Pengamanan Terpadu
+            </div>
+        </div>
+    </footer>
+</main>
+
+<!-- Firebase -->
+<script src="supabase-firebase-compat.js"></script>
+<script>
+/* =========================
+   KONFIGURASI
+========================= */
+const AUTH_USER = "admin";
+const AUTH_PASS = "pamops2026";
+
+const FIREBASE_CONFIG_SUPERVISI = {
+    apiKey: "AIzaSyC_jb6Wy9dF3RDwrHSTXEc-ZFO19-7Q1lM",
+    authDomain: "cc-pam-bandung.firebaseapp.com",
+    databaseURL: "https://cc-pam-bandung-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "cc-pam-bandung",
+    storageBucket: "cc-pam-bandung.firebasestorage.app",
+    messagingSenderId: "492197455810",
+    appId: "1:492197455810:web:2f25c5e9ba9f64ac2a185b",
+    measurementId: "G-P4PW6850TQ"
+};
+const DB_PATH_SUPERVISI = "dispatch_supervisi";
+
+const defaultData = [{
+    id:"SV_1",
+    nama:"Ranni Vidiawan",
+    nip:"5020123",
+    jabatan:"Supervisor Utama",
+    area:"PAM RMU Bandung",
+    program:[{tgl:"2026-09-10",lokasi:"Stasiun Hall Bandung"}],
+    realisasi:[{tgl:"2026-09-10",lokasi:"Stasiun Hall Bandung",catatan:"Aman"}]
+}];
+
+let appData = [];
+let trendChart = null;
+let modeFirebaseSupervisi = false;
+let fbRefSupervisi = null;
+let realtimeChannel = null;
+let clockTimer = null;
+
+/* =========================
+   HELPERS
+========================= */
+const $ = id => document.getElementById(id);
+const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+}[c]));
+
+function todayISO(){
+    const d = new Date();
+    const local = new Date(d.getTime() - d.getTimezoneOffset()*60000);
+    return local.toISOString().slice(0,10);
+}
+function dateObj(iso){ return iso ? new Date(iso+"T00:00:00") : null; }
+function inSelectedPeriod(iso){
+    const period = $("period-filter")?.value || "all";
+    if(period === "all") return true;
+    const d = dateObj(iso), now = dateObj(todayISO());
+    if(!d) return false;
+    if(period === "today") return iso === todayISO();
+    if(period === "month") return d.getFullYear()===now.getFullYear() && d.getMonth()===now.getMonth();
+    if(period === "week"){
+        const day = now.getDay() || 7;
+        const start = new Date(now); start.setDate(now.getDate()-day+1);
+        const end = new Date(start); end.setDate(start.getDate()+6);
+        return d>=start && d<=end;
+    }
+    return true;
+}
+function filteredCounts(sv){
+    const program = (sv.program||[]).filter(x=>inSelectedPeriod(x.tgl));
+    const realisasi = (sv.realisasi||[]).filter(x=>inSelectedPeriod(x.tgl));
+    return {program,realisasi,progCnt:program.length,realCnt:realisasi.length};
+}
+function statusOf(progCnt,realCnt){
+    if(progCnt===0) return "none";
+    if(realCnt>=progCnt) return "complete";
+    if(realCnt>0) return "partial";
+    return "pending";
+}
+function statusBadge(status){
+    const map = {
+        complete:`<span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-heading font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">● Selesai</span>`,
+        partial:`<span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-heading font-bold bg-amber-100 text-amber-800 border border-amber-300">◐ Sebagian</span>`,
+        pending:`<span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-heading font-bold bg-rose-100 text-rose-800 border border-rose-300">● Belum</span>`,
+        none:`<span class="status-badge inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-heading font-bold bg-slate-200 text-slate-700 border border-slate-300">○ Tanpa Jadwal</span>`
+    };
+    return map[status];
+}
+function saveLocal(){
+    try{ localStorage.setItem("dispatch_tracking_data",JSON.stringify(appData)); }catch(e){}
+}
+function broadcastDataChange(){
+    saveLocal();
+    try{ realtimeChannel?.postMessage({type:"SYNC_DATA",payload:appData}); }catch(e){}
+    if(modeFirebaseSupervisi && fbRefSupervisi){
+        fbRefSupervisi.set(appData).catch(()=>{});
+    }
+    refreshAllUI();
+    pulseSync("Data Tersinkron");
+}
+function pulseSync(text="Data Sinkron"){
+    const el=$("sync-status-desc");
+    if(!el) return;
+    el.textContent=text;
+    el.className="text-[11px] text-emerald-700 font-bold";
+    setTimeout(()=>{el.textContent=modeFirebaseSupervisi?"Firebase Sinkron Aktif":"Mode Lokal Aktif";},1800);
+}
+function setDefaults(){
+    $("prog-date").value ||= todayISO();
+    $("real-date").value ||= todayISO();
+}
+
+/* =========================
+   AUTH
+========================= */
+function checkAuth(){
+    let logged=false;
+    try{ logged=sessionStorage.getItem("dispatch_logged_in")==="true"; }catch(e){ logged=false; }
+    if(logged){
+        $("login-overlay").classList.add("hidden");
+        initApp();
+    }else{
+        $("login-overlay").classList.remove("hidden");
+    }
+}
+$("login-form").addEventListener("submit",e=>{
+    e.preventDefault();
+    const ok=$("login-user").value.trim()===AUTH_USER && $("login-pass").value.trim()===AUTH_PASS;
+    if(ok){
+        try{sessionStorage.setItem("dispatch_logged_in","true")}catch(e){}
+        $("login-error").classList.add("hidden");
+        $("login-overlay").classList.add("hidden");
+        initApp();
+    }else{
+        $("login-error").classList.remove("hidden");
+    }
+});
+function handleLogout(){
+    try{sessionStorage.removeItem("dispatch_logged_in")}catch(e){}
+    location.reload();
+}
+
+/* =========================
+   FIREBASE / REALTIME
+========================= */
+function initFirebaseSupervisi(){
+    try{
+        if(!FIREBASE_CONFIG_SUPERVISI?.apiKey || !FIREBASE_CONFIG_SUPERVISI?.databaseURL){
+            return;
+        }
+        if(!firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG_SUPERVISI);
+        const db=firebase.database();
+        fbRefSupervisi=db.ref(DB_PATH_SUPERVISI);
+        modeFirebaseSupervisi=true;
+
+        db.ref(".info/connected").on("value",snap=>{
+            if(snap.val()===true){
+                $("realtime-dot").className="w-2.5 h-2.5 rounded-full bg-emerald-500 realtime-dot";
+            }else{
+                $("realtime-dot").className="w-2.5 h-2.5 rounded-full bg-amber-500";
+            }
+        });
+
+        let first=true;
+        fbRefSupervisi.on("value",snap=>{
+            const val=snap.val();
+            if(first){
+                first=false;
+                if(!Array.isArray(val) || !val.length){
+                    fbRefSupervisi.set(appData||[]).catch(()=>{});
+                    return;
+                }
+            }
+            if(Array.isArray(val)){
+                appData=val.map(normalizePerson);
+                saveLocal();
+                refreshAllUI();
+                pulseSync("Pembaruan Diterima");
+            }
+        },()=>{
+            modeFirebaseSupervisi=false;
+            fbRefSupervisi=null;
+        });
+    }catch(e){
+        modeFirebaseSupervisi=false;
+        fbRefSupervisi=null;
+    }
+}
+function normalizePerson(s){
+    return {
+        id:s.id || ("SV_"+Date.now()),
+        nama:s.nama || "Tanpa Nama",
+        nip:s.nip || "",
+        jabatan:s.jabatan || "",
+        area:s.area || "",
+        program:Array.isArray(s.program)?s.program:[],
+        realisasi:Array.isArray(s.realisasi)?s.realisasi:[]
+    };
+}
+try{
+    realtimeChannel=new BroadcastChannel("dispatch_realtime_sync_channel");
+    realtimeChannel.onmessage=e=>{
+        if(e.data?.type==="SYNC_DATA"){
+            appData=(e.data.payload||[]).map(normalizePerson);
+            saveLocal(); refreshAllUI(); pulseSync("Sinkronisasi Antar Tab");
+        }
+    };
+}catch(e){}
+window.addEventListener("storage",e=>{
+    if(e.key==="dispatch_tracking_data" && !modeFirebaseSupervisi){
+        loadDataFromStorage(); refreshAllUI(); pulseSync("Sinkronisasi Berhasil");
+    }
+});
+
+/* =========================
+   INIT / CLOCK
+========================= */
+function initApp(){
+    loadDataFromStorage();
+    startClock();
+    setDefaults();
+    refreshAllUI();
+    initFirebaseSupervisi();
+}
+function loadDataFromStorage(){
+    try{
+        const saved=localStorage.getItem("dispatch_tracking_data");
+        appData=saved ? JSON.parse(saved).map(normalizePerson) : defaultData.map(normalizePerson);
+        if(!saved) saveLocal();
+    }catch(e){appData=defaultData.map(normalizePerson)}
+}
+function startClock(){
+    if(clockTimer) clearInterval(clockTimer);
+    const update=()=>{
+        const now=new Date();
+        $("live-clock").textContent=now.toLocaleTimeString("id-ID",{hour12:false});
+        $("live-date").textContent=now.toLocaleDateString("id-ID",{weekday:"long",day:"2-digit",month:"long",year:"numeric"});
+    };
+    update(); clockTimer=setInterval(update,1000);
+}
+
+/* =========================
+   NAV / FULLSCREEN
+========================= */
+function switchView(view){
+    const dash=$("view-dashboard"), form=$("view-form-data");
+    const bd=$("btn-nav-dashboard"), bf=$("btn-nav-form");
+    if(view==="dashboard"){
+        dash.classList.remove("hidden"); form.classList.add("hidden");
+        bd.className="px-4 py-2 rounded-lg bg-sky-600 text-white font-heading text-xs font-bold transition shadow-sm";
+        bf.className="px-4 py-2 rounded-lg text-slate-700 hover:text-slate-900 font-heading text-xs font-bold transition";
+        refreshAllUI();
+    }else{
+        dash.classList.add("hidden"); form.classList.remove("hidden");
+        bf.className="px-4 py-2 rounded-lg bg-sky-600 text-white font-heading text-xs font-bold transition shadow-sm";
+        bd.className="px-4 py-2 rounded-lg text-slate-700 hover:text-slate-900 font-heading text-xs font-bold transition";
+        populateSupervisorSelect();
+    }
+}
+function toggleFullscreen(){
+    const root=$("command-center");
+    if(!document.fullscreenElement){
+        root.requestFullscreen?.().catch(()=>{root.classList.add("fullscreen-mode")});
+        root.classList.add("fullscreen-mode");
+        document.body.classList.add("command-fullscreen");
+        $("fullscreen-btn").innerHTML=`<svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg> Keluar Layar Penuh`;
+    }else{
+        document.exitFullscreen?.().catch(()=>{});
+        root.classList.remove("fullscreen-mode");
+        document.body.classList.remove("command-fullscreen");
+        $("fullscreen-btn").innerHTML=`<svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"></path></svg> Layar Penuh`;
+    }
+}
+document.addEventListener("fullscreenchange",()=>{
+    const active=!!document.fullscreenElement;
+    if(!active){
+        $("command-center").classList.remove("fullscreen-mode");
+        document.body.classList.remove("command-fullscreen");
+        $("fullscreen-btn").innerHTML=`<svg class="w-4 h-4 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l-5 5M11 5l-5-5m5 5v-4m0 4h-4"></path></svg> Layar Penuh`;
+    }
+});
+
+/* =========================
+   DASHBOARD
+========================= */
+function refreshAllUI(){
+    populateSupervisorSelect();
+    renderDashboard();
+    renderChart();
+    const current=$("select-supervisor")?.value;
+    if(current && current!=="NEW_SV") loadSupervisorAllData(current);
+}
+function renderDashboard(){
+    let totalProg=0,totalReal=0,complete=0,partial=0,pending=0,none=0;
+    const rows=appData.map(sv=>{
+        const c=filteredCounts(sv);
+        const st=statusOf(c.progCnt,c.realCnt);
+        totalProg+=c.progCnt; totalReal+=c.realCnt;
+        if(st==="complete")complete++; else if(st==="partial")partial++; else if(st==="pending")pending++; else none++;
+        return {...sv,...c,status:st,pct:c.progCnt?Math.min(100,Math.round(c.realCnt/c.progCnt*100)):0};
+    }).sort((a,b)=>{
+        const rank={complete:0,partial:1,pending:2,none:3};
+        return rank[a.status]-rank[b.status] || b.pct-a.pct;
+    });
+
+    const tbody=$("dashboard-table-body");
+    tbody.innerHTML="";
+    rows.forEach(sv=>{
+        const tr=document.createElement("tr");
+        tr.innerHTML=`
+          <td class="p-3.5">
+            <div class="font-bold text-slate-900">${esc(sv.nama)}</div>
+            <div class="text-[11px] text-slate-500 font-mono-code font-bold mt-0.5">NIPKWT: ${esc(sv.nip||"-")}</div>
+          </td>
+          <td class="p-3.5 text-slate-700 font-bold">${esc(sv.area||"-")}</td>
+          <td class="p-3.5 text-center font-mono-code font-extrabold text-sky-700">${sv.progCnt}</td>
+          <td class="p-3.5 text-center font-mono-code font-extrabold text-emerald-700">${sv.realCnt}</td>
+          <td class="p-3.5 text-center">
+            <div class="font-mono-code font-extrabold ${sv.pct>=100?"text-emerald-700":sv.pct>0?"text-amber-700":"text-rose-700"}">${sv.pct}%</div>
+            <div class="progress-track w-20 mx-auto mt-1.5"><div class="progress-fill ${sv.pct>=100?"bg-emerald-500":sv.pct>0?"bg-amber-500":"bg-rose-500"}" style="width:${sv.pct}%"></div></div>
+          </td>
+          <td class="p-3.5 text-center">${statusBadge(sv.status)}</td>
+          <td class="p-3.5 text-center">
+            <div class="inline-flex items-center gap-1.5 justify-center">
+                <button onclick="quickActionRealisasikan('${esc(sv.id)}')" title="Realisasikan kunjungan dengan GPS Geotagging" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-[11px] font-heading font-bold text-white transition shadow-sm flex items-center gap-1">
+                    📍 Realisasi
+                </button>
+                <button onclick="openUnrealizedModal('${esc(sv.id)}')" title="Lihat program lokasi yang belum terealisasi" class="px-2.5 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-[11px] font-heading font-bold text-white transition shadow-sm" ${sv.progCnt - sv.realCnt <= 0 ? 'opacity-50' : ''}>
+                    👁️ Belum (${Math.max(0, sv.progCnt - sv.realCnt)})
+                </button>
+                <button onclick="openFormForSV('${esc(sv.id)}')" class="px-2 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-300 text-[11px] font-heading font-bold text-sky-700 transition shadow-sm">Ubah</button>
+            </div>
+          </td>`;
+        tbody.appendChild(tr);
+    });
+
+    $("metric-total-program").textContent=totalProg;
+    $("metric-total-realisasi").textContent=totalReal;
+    const pct=totalProg?Math.min(100,Math.round(totalReal/totalProg*100)):0;
+    $("metric-capaian").textContent=pct+"%";
+    $("capaian-progress").style.width=pct+"%";
+    $("metric-status-supervisi").textContent=`${complete} / ${appData.length}`;
+    $("metric-personil-desc").textContent=`${complete} dari ${appData.length} personil sesuai target`;
+
+    $("count-complete").textContent=complete;
+    $("count-partial").textContent=partial;
+    $("count-pending").textContent=pending;
+    $("count-none").textContent=none;
+
+    const pendingCount=pending+partial;
+    $("ticker-text").textContent=pendingCount
+      ? `🚨 PERHATIAN: ${pendingCount} personil masih memiliki target yang belum lengkap • Realisasi: ${totalReal} dari ${totalProg} program • Data diperbarui secara realtime.`
+      : `✅ STATUS NORMAL: Seluruh target pengawasan pada periode terpilih telah terpenuhi dengan baik • Realisasi: ${totalReal} dari ${totalProg} program.`;
+}
+function renderChart(){
+    const ctx=$("commandTrendChart")?.getContext("2d");
+    if(!ctx) return;
+    const rows=appData.map(sv=>{
+        const c=filteredCounts(sv);
+        return {name:sv.nama?.split(" ")[0]||"Personil",prog:c.progCnt,real:c.realCnt};
+    });
+    if(trendChart) trendChart.destroy();
+    trendChart=new Chart(ctx,{
+        type:"bar",
+        data:{
+            labels:rows.map(x=>x.name),
+            datasets:[
+                {label:"PROGRAM",data:rows.map(x=>x.prog),backgroundColor:"rgba(2,132,199,0.75)",borderColor:"#0284c7",borderWidth:1,borderRadius:6},
+                {label:"REALISASI",data:rows.map(x=>x.real),backgroundColor:"rgba(5,150,105,0.75)",borderColor:"#059669",borderWidth:1,borderRadius:6}
+            ]
+        },
+        options:{
+            responsive:true,maintainAspectRatio:false,
+            animation:{duration:600},
+            plugins:{
+                legend:{labels:{color:"#334155",font:{family:"'Plus Jakarta Sans', sans-serif",size:11,weight:700}}
+            }},
+            scales:{
+                x:{ticks:{color:"#475569",font:{family:"'Plus Jakarta Sans', sans-serif",size:11,weight:600}},grid:{color:"rgba(203,213,225,0.6)"}},
+                y:{beginAtZero:true,ticks:{color:"#475569",font:{family:"'Plus Jakarta Sans', sans-serif",size:11,weight:600},stepSize:1},grid:{color:"rgba(203,213,225,0.6)"}}
+            }
+        }
+    });
+}
+
+/* =========================
+   SELECT / FORM
+========================= */
+function populateSupervisorSelect(){
+    const select=$("select-supervisor");
+    if(!select) return;
+    const current=select.value;
+    select.innerHTML='<option value="NEW_SV">+ Tambah Nama Personil Baru</option>';
+    appData.forEach(sv=>{
+        const o=document.createElement("option");
+        o.value=sv.id;
+        o.textContent=`${sv.nama} — ${sv.area||"Tanpa Area"}`;
+        select.appendChild(o);
+    });
+    if(current && [...select.options].some(o=>o.value===current)){
+        select.value=current;
+    }
+}
+function loadSupervisorAllData(id){
+    if($("select-supervisor").value!==id) $("select-supervisor").value=id;
+    if(!id || id==="NEW_SV"){
+        $("input-nama").value=""; $("input-nip").value=""; $("input-jabatan").value=""; $("input-area").value="";
+        renderProgramList({program:[]}); renderRealisasiList({realisasi:[]});
+        populateRealLokasiDropdown({program:[]});
+        return;
+    }
+    const sv=appData.find(x=>x.id===id); if(!sv) return;
+    $("input-nama").value=sv.nama||"";
+    $("input-nip").value=sv.nip||"";
+    $("input-jabatan").value=sv.jabatan||"";
+    $("input-area").value=sv.area||"";
+    renderProgramList(sv); renderRealisasiList(sv);
+    populateRealLokasiDropdown(sv);
+}
+function openFormForSV(id){switchView("form-data");loadSupervisorAllData(id)}
+function resetProfileFields(){
+    $("select-supervisor").value="NEW_SV";
+    loadSupervisorAllData("NEW_SV");
+    setDefaults();
+}
+function saveSupervisorProfile(){
+    const id=$("select-supervisor").value;
+    const nama=$("input-nama").value.trim();
+    if(!nama){alert("⚠ Harap isi nama lengkap personil terlebih dahulu.");return}
+    const profile={
+        nama,nip:$("input-nip").value.trim(),jabatan:$("input-jabatan").value.trim(),area:$("input-area").value.trim()
+    };
+    if(!id || id==="NEW_SV"){
+        const newId="SV_"+Date.now();
+        appData.push({id:newId,...profile,program:[],realisasi:[]});
+        broadcastDataChange(); populateSupervisorSelect(); $("select-supervisor").value=newId; loadSupervisorAllData(newId);
+        alert("✅ Nama personil baru berhasil disimpan.");
+    }else{
+        const sv=appData.find(x=>x.id===id); if(!sv)return;
+        Object.assign(sv,profile); broadcastDataChange(); populateSupervisorSelect(); $("select-supervisor").value=id; loadSupervisorAllData(id);
+        alert("✅ Profil personil berhasil diperbarui.");
+    }
+}
+function deleteSupervisorProfile(){
+    const id=$("select-supervisor").value;
+    if(!id || id==="NEW_SV"){alert("⚠ Pilih nama personil yang ingin dihapus terlebih dahulu.");return}
+    const sv=appData.find(x=>x.id===id); if(!sv)return;
+    if(confirm(`Apakah Anda yakin ingin menghapus data "${sv.nama}" beserta seluruh program dan realisasinya?`)){
+        appData=appData.filter(x=>x.id!==id); broadcastDataChange(); populateSupervisorSelect();
+        if(appData.length)loadSupervisorAllData(appData[0].id);else resetProfileFields();
+    }
+}
+
+/* =========================
+   PROGRAM / REALISASI & MODAL BELUM TEREALISASI
+========================= */
+function openUnrealizedModal(svId){
+    const sv = appData.find(x => x.id === svId);
+    if(!sv) return;
+
+    $("modal-unrealized-title").textContent = `Program Belum Terealisasi: ${sv.nama}`;
+    const bodyBox = $("modal-unrealized-body");
+    bodyBox.innerHTML = "";
+
+    // Bandingkan daftar program dengan realisasi berdasarkan kesamaan nama lokasi atau pencocokan teks
+    const realisasiLokasiSet = new Set((sv.realisasi || []).map(r => r.lokasi.trim().toLowerCase()));
+    const unRealizedPrograms = (sv.program || []).filter(p => !realisasiLokasiSet.has(p.lokasi.trim().toLowerCase()));
+
+    if(unRealizedPrograms.length === 0){
+        bodyBox.innerHTML = `<div class="p-4 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold text-center">🎉 Luar biasa! Seluruh program kunjungan untuk personil ini sudah terealisasi.</div>`;
+    } else {
+        unRealizedPrograms.forEach((p, idx) => {
+            const item = document.createElement("div");
+            item.className = "rounded-xl bg-slate-50 border border-slate-300 p-3.5 flex justify-between items-center shadow-sm";
+            item.innerHTML = `
+                <div>
+                    <div class="text-xs font-bold text-slate-900">${idx + 1}. ${esc(p.lokasi)}</div>
+                    <div class="text-[11px] text-rose-600 font-mono font-bold mt-0.5">📅 Rencana: ${esc(p.tgl)}</div>
+                </div>
+                <button onclick="quickActionRealisasikanSpecific('${esc(sv.id)}', '${esc(p.lokasi)}')" class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-heading font-bold shadow-sm transition">
+                    📍 Realisasikan Ini
+                </button>
+            `;
+            bodyBox.appendChild(item);
+        });
+    }
+
+    $("modal-unrealized").classList.remove("hidden");
+}
+
+function closeUnrealizedModal(){
+    $("modal-unrealized").classList.add("hidden");
+}
+
+function quickActionRealisasikanSpecific(svId, lokasiTarget){
+    const sv = appData.find(x => x.id === svId);
+    if(!sv) return;
+
+    if(!navigator.geolocation){
+        alert("⚠ Browser Anda tidak mendukung Geolocation / GPS.");
+        pushRealisasiGPS(sv, lokasiTarget, "Tanpa GPS");
+        closeUnrealizedModal();
+        return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            const lat = position.coords.latitude.toFixed(6);
+            const lon = position.coords.longitude.toFixed(6);
+            const gpsCoord = `${lat}, ${lon}`;
+            pushRealisasiGPS(sv, lokasiTarget, gpsCoord);
+            closeUnrealizedModal();
+        },
+        error => {
+            alert("⚠ Gagal mendeteksi koordinat GPS. Realisasi dicatat tanpa koordinat.");
+            pushRealisasiGPS(sv, lokasiTarget, "GPS Gagal");
+            closeUnrealizedModal();
+        },
+        { timeout: 10000, maximumAge: 0, enableHighAccuracy: true }
+    );
+}
+
+function populateRealLokasiDropdown(sv){
+    const sel = $("real-lokasi-select");
+    const inputLain = $("real-lokasi");
+    if(!sel) return;
+    
+    sel.innerHTML = '<option value="">-- Pilih dari Program Kunjungan --</option>';
+    const progList = sv?.program || [];
+    progList.forEach(p => {
+        const opt = document.createElement("option");
+        opt.value = p.lokasi;
+        opt.textContent = `${p.lokasi} (Tgl: ${p.tgl})`;
+        sel.appendChild(opt);
+    });
+
+    const optLain = document.createElement("option");
+    optLain.value = "CUSTOM_INPUT";
+    optLain.textContent = "➕ Input Lokasi Lain...";
+    sel.appendChild(optLain);
+
+    sel.value = "";
+    inputLain.value = "";
+    inputLain.classList.add("hidden");
+}
+
+function handleRealLokasiSelectChange(val){
+    const inputLain = $("real-lokasi");
+    if(val === "CUSTOM_INPUT"){
+        inputLain.classList.remove("hidden");
+        inputLain.value = "";
+        inputLain.focus();
+    } else {
+        inputLain.classList.add("hidden");
+        inputLain.value = val;
+    }
+}
+
+function renderProgramList(sv){
+    const list=sv?.program||[], box=$("prog-list-container");
+    $("badge-total-prog").textContent=list.length+" Program";
+    box.innerHTML=list.length?"":"<div class='text-xs text-slate-500 font-semibold italic p-2'>Belum ada program rencana terdaftar.</div>";
+    list.forEach((p,i)=>{
+        const d=document.createElement("div");
+        d.className="rounded-xl bg-white border border-slate-300 p-3 flex justify-between gap-3 items-center shadow-sm";
+        d.innerHTML=`<div><div class="text-xs font-bold text-slate-900">${esc(p.lokasi)}</div><div class="text-[11px] text-slate-600 font-mono-code font-bold mt-1">📅 ${esc(p.tgl)}</div></div><button onclick="removeProgramItem('${esc(sv.id)}',${i})" class="text-rose-600 hover:text-rose-800 p-1 font-bold">✕</button>`;
+        box.appendChild(d);
+    });
+}
+function renderRealisasiList(sv){
+    const list=sv?.realisasi||[], box=$("real-list-container");
+    $("badge-total-real").textContent=list.length+" Realisasi";
+    box.innerHTML=list.length?"":"<div class='text-xs text-slate-500 font-semibold italic p-2'>Belum ada realisasi terdaftar.</div>";
+    list.forEach((r,i)=>{
+        const d=document.createElement("div");
+        d.className="rounded-xl bg-white border border-emerald-300 p-3 flex justify-between gap-3 items-center shadow-sm";
+        let gpsInfo = r.gps ? `<div class="text-[10px] text-sky-600 font-mono font-bold mt-0.5">📍 GPS: ${r.gps}</div>` : "";
+        d.innerHTML=`<div><div class="text-xs font-bold text-emerald-800">${esc(r.lokasi)}</div><div class="text-[11px] text-slate-600 font-mono-code font-bold mt-1">📅 ${esc(r.tgl)} • ${esc(r.catatan||"-")}</div>${gpsInfo}</div><button onclick="removeRealisasiItem('${esc(sv.id)}',${i})" class="text-rose-600 hover:text-rose-800 p-1 font-bold">✕</button>`;
+        box.appendChild(d);
+    });
+}
+function addProgramItem(){
+    const id=$("select-supervisor").value;
+    if(!id || id==="NEW_SV"){alert("⚠ Simpan profil personil terlebih dahulu sebelum menambah program.");return}
+    const sv=appData.find(x=>x.id===id); if(!sv)return;
+    const tgl=$("prog-date").value, lokasi=$("prog-lokasi").value.trim();
+    if(!tgl||!lokasi){alert("⚠ Harap isi tanggal dan lokasi program rencana.");return}
+    sv.program ||= [];
+    sv.program.push({tgl,lokasi});
+    broadcastDataChange(); renderProgramList(sv);
+    populateRealLokasiDropdown(sv);
+    $("prog-lokasi").value="";
+}
+function removeProgramItem(id,i){
+    const sv=appData.find(x=>x.id===id); if(!sv?.program)return;
+    sv.program.splice(i,1); broadcastDataChange(); renderProgramList(sv);
+    populateRealLokasiDropdown(sv);
+}
+function addRealisasiItem(customLokasi = null, customGps = null){
+    const id=$("select-supervisor").value;
+    if(!id || id==="NEW_SV"){alert("⚠ Simpan profil personil terlebih dahulu sebelum menambah realisasi.");return}
+    const sv=appData.find(x=>x.id===id); if(!sv)return;
+    const tgl=$("real-date").value;
+    
+    let lokasi = "";
+    if(customLokasi){
+        lokasi = customLokasi;
+    } else {
+        const selVal = $("real-lokasi-select").value;
+        if(selVal === "CUSTOM_INPUT" || !selVal){
+            lokasi = $("real-lokasi").value.trim();
+        } else {
+            lokasi = selVal;
+        }
+    }
+
+    const catatan=$("real-catatan").value.trim() || (customGps ? `Realisasi Cepat via Geotagging GPS (${customGps})` : "Sesuai jadwal");
+    if(!tgl||!lokasi){alert("⚠ Harap isi tanggal dan pilih/masukkan lokasi realisasi lapangan.");return}
+    
+    sv.realisasi ||= [];
+    sv.realisasi.push({tgl, lokasi, catatan, gps: customGps || ""});
+    broadcastDataChange(); renderRealisasiList(sv);
+    if(!customLokasi){
+        $("real-lokasi-select").value="";
+        $("real-lokasi").value="";
+        $("real-lokasi").classList.add("hidden");
+        $("real-catatan").value="";
+    }
+}
+function removeRealisasiItem(id,i){
+    const sv=appData.find(x=>x.id===id); if(!sv?.realisasi)return;
+    sv.realisasi.splice(i,1); broadcastDataChange(); renderRealisasiList(sv);
+}
+
+/* =========================
+   AKSI CEPAT GPS (GEOTAGGING)
+========================= */
+function quickActionRealisasikan(svId){
+    const sv = appData.find(x => x.id === svId);
+    if(!sv) return;
+
+    let targetLokasi = sv.area || "Lokasi Lapangan";
+    if(sv.program && sv.program.length > 0){
+        // Cari program pertama yang belum direalisasikan
+        const realisasiSet = new Set((sv.realisasi || []).map(r => r.lokasi.trim().toLowerCase()));
+        const unRealized = sv.program.find(p => !realisasiSet.has(p.lokasi.trim().toLowerCase()));
+        if(unRealized){
+            targetLokasi = unRealized.lokasi;
+        } else {
+            targetLokasi = sv.program[0].lokasi;
+        }
+    }
+
+    if(!navigator.geolocation){
+        alert("⚠ Browser Anda tidak mendukung Geolocation / GPS.");
+        pushRealisasiGPS(sv, targetLokasi, "Tanpa GPS");
+        return;
+    }
+
+    const btn = event?.currentTarget;
+    const originalText = btn ? btn.innerHTML : "";
+    if(btn){
+        btn.innerHTML = "⏳ Mengambil GPS...";
+        btn.disabled = true;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+        position => {
+            const lat = position.coords.latitude.toFixed(6);
+            const lon = position.coords.longitude.toFixed(6);
+            const gpsCoord = `${lat}, ${lon}`;
+            
+            if(btn){
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+
+            pushRealisasiGPS(sv, targetLokasi, gpsCoord);
+        },
+        error => {
+            if(btn){
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+            alert("⚠ Gagal mendapatkan koordinat GPS. Realisasi dicatat tanpa koordinat.");
+            pushRealisasiGPS(sv, targetLokasi, "GPS Gagal");
+        },
+        { timeout: 10000, maximumAge: 0, enableHighAccuracy: true }
+    );
+}
+
+function pushRealisasiGPS(sv, lokasi, gpsCoord){
+    const tgl = todayISO();
+    sv.realisasi ||= [];
+    sv.realisasi.push({
+        tgl: tgl,
+        lokasi: lokasi,
+        catatan: `Realisasi Cepat (GPS Geotagging: ${gpsCoord})`,
+        gps: gpsCoord
+    });
+    broadcastDataChange();
+    alert(`✅ Kunjungan untuk "${sv.nama}" berhasil direalisasikan!\n📍 Lokasi: ${lokasi}\n🌐 Titik Koordinat GPS: ${gpsCoord}`);
+}
+
+/* =========================
+   EXPORT
+========================= */
+function exportDataToExcel(){
+    const summary=[], detail=[];
+    appData.forEach(sv=>{
+        const c=filteredCounts(sv);
+        const pct=c.progCnt?Math.min(100,(c.realCnt/c.progCnt)*100):0;
+        const st=statusOf(c.progCnt,c.realCnt);
+        const statusName={complete:"Selesai",partial:"Sebagian",pending:"Belum",none:"Tanpa Jadwal"}[st];
+        summary.push({
+            "Nama Personil":sv.nama,"NIPKWT":sv.nip||"-","Jabatan":sv.jabatan||"-","Area Kerja":sv.area||"-",
+            "Total Program":c.progCnt,"Total Realisasi":c.realCnt,"% Capaian":pct.toFixed(1)+"%","Status Monitoring":statusName
+        });
+        (sv.program||[]).forEach(p=>detail.push({"Nama Personil":sv.nama,"Jenis":"PROGRAM","Tanggal":p.tgl,"Lokasi":p.lokasi,"Catatan":"","GPS":""}));
+        (sv.realisasi||[]).forEach(r=>detail.push({"Nama Personil":sv.nama,"Jenis":"REALISASI","Tanggal":r.tgl,"Lokasi":r.lokasi,"Catatan":r.catatan||"","GPS":r.gps||"-"}));
+    });
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(summary),"Dashboard Summary");
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(detail),"Detail Kunjungan");
+    XLSX.writeFile(wb,"Dispatch_Command_Center_Report.xlsx");
+}
+
+/* =========================
+   KEYBOARD / TV
+========================= */
+document.addEventListener("keydown",e=>{
+    if(e.key==="F11"){e.preventDefault();toggleFullscreen()}
+    if(e.key==="Escape" && document.fullscreenElement) document.exitFullscreen?.();
+});
+window.addEventListener("DOMContentLoaded",checkAuth);
+</script>
+
+<style>
+.field-label{display:block;font-size:11px;color:#334155;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.field{width:100%;background:#ffffff;border:1px solid #cbd5e1;border-radius:12px;padding:11px 13px;font-size:12px;color:#0f172a;font-weight:600;outline:none;transition:all .2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.field:focus{border-color:#0284c7;box-shadow:0 0 0 3px rgba(2,132,199,0.15)}
+.action{width:100%;padding:10px 6px;border-radius:12px;font-size:11px;font-family:'Outfit',sans-serif;font-weight:700;transition:all .2s;box-shadow:0 1px 2px rgba(0,0,0,0.05)}
+.action.amber{background:#d97706;color:#ffffff}.action.amber:hover{background:#b45309}
+.action.cyan{background:#e0f2fe;color:#0369a1;border:1px solid #7dd3fc}.action.cyan:hover{background:#bae6fd}
+.action.red{background:#fee2e2;color:#b91c1c;border:1px solid #fecaca}.action.red:hover{background:#fecaca}
+</style>
+</body>
+</html>
+<style>
+.fullscreen-mode #command-center > header{
+    position:relative!important;
+    top:auto!important;
+}
+</style>

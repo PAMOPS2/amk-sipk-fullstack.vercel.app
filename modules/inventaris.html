@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daftar Inventaris — PAM</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<!-- Library SheetJS untuk membaca dan menulis file Excel -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#eef3f8;--panel:#fff;--panel2:#f6f9fc;--text:#142033;--muted:#64748b;
+  --line:#dbe4ee;--primary:#16a34a;--primary2:#15803d;--good:#16a34a;--bad:#dc2626;
+  --warn:#d97706;--shadow:0 10px 30px rgba(24,55,91,.10);--radius:18px;
+}
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(135deg,#f8fbff,#eaf1f8);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif}
+button,input,select{font:inherit}
+.topbar{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.94);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+.topbar-inner{max-width:1600px;margin:auto;padding:13px 22px;display:flex;align-items:center;gap:18px}
+.logo{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.08);padding:4px;overflow:hidden}
+.logo img{width:100%;height:100%;object-fit:contain}
+.brand{flex:1}.brand h1{font-size:20px;margin:0}.brand small{color:var(--muted)}
+.clock{font-family:"Courier New",monospace;font-size:30px;font-weight:900;letter-spacing:2px;color:#15803d}
+.live{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:800;color:var(--good);text-transform:uppercase}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--good);animation:pulse 1.5s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 7px #16a34a22;opacity:.55}}
+nav{max-width:1600px;margin:auto;padding:0 22px 12px;display:flex;gap:8px}
+.navbtn{border:1px solid var(--line);background:#fff;color:#475569;padding:9px 14px;border-radius:10px;cursor:pointer;font-weight:750}
+.navbtn.active{background:#16a34a;color:#fff;border-color:#16a34a}
+main{max-width:1600px;margin:22px auto;padding:0 22px}
+.page{display:none}.page.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+.grid{display:grid;gap:16px}.kpis{grid-template-columns:repeat(5,minmax(0,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow)}
+.kpi{padding:20px;position:relative;overflow:hidden}.kpi:after{content:"";position:absolute;width:100px;height:100px;border-radius:50%;right:-35px;top:-40px;background:#16a34a10}
+.kpi .label{font-size:12px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.6px}
+.kpi .value{font-size:34px;font-weight:900;margin-top:7px}.blue{color:var(--primary)}.green{color:var(--good)}.red{color:var(--bad)}.orange{color:var(--warn)}
+.two{grid-template-columns:1.25fr .75fr;margin-top:16px}.three{grid-template-columns:repeat(3,1fr);margin-top:16px}
+.panel{padding:18px}.panel h2{margin:0 0 14px;font-size:16px}.sub{color:var(--muted);font-size:12px}
+.chartbox{height:300px}.tablewrap{overflow:auto;max-height:570px}
+table{width:100%;border-collapse:collapse;min-width:850px}th,td{padding:12px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:13px}th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;background:#f8fafc;position:sticky;top:0;z-index:2}
+.badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:900}.baik{background:#dcfce7;color:#166534}.rusak{background:#fee2e2;color:#991b1b}.aktif{background:#dcfce7;color:#166534}
+.formgrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}.field{display:flex;flex-direction:column;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:800;color:#475569}.field input,.field select{border:1px solid #cbd5e1;background:#fff;padding:11px 12px;border-radius:10px;outline:none}.field input:focus,.field select:focus{border-color:#16a34a;box-shadow:0 0 0 3px #16a34a16}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.btn{border:0;border-radius:10px;padding:10px 14px;font-weight:850;cursor:pointer}.primary{background:#16a34a;color:#fff}.secondary{background:#e8eef6;color:#203047}.danger{background:#fee2e2;color:#991b1b}
+.toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:14px}.toolbar input,.toolbar select{padding:9px 11px;border:1px solid var(--line);border-radius:9px;background:#fff}.toolbar .grow{flex:1}
+.empty{padding:45px;text-align:center;color:var(--muted)}
+.footer{text-align:center;color:#7a8aa0;font-size:11px;padding:15px;background:rgba(255,255,255,.6);border-top:1px solid var(--line);overflow:hidden;white-space:nowrap}
+.footer marquee{font-weight:600;color:#475569}
+.toast{position:fixed;right:22px;bottom:22px;z-index:100;padding:13px 16px;border-radius:12px;background:#12243b;color:#fff;box-shadow:var(--shadow);opacity:0;transform:translateY(12px);transition:.25s}.toast.show{opacity:1;transform:none}
+.modalOverlay{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:200;padding:16px}
+.modalOverlay.show{display:flex}
+.modalCard{background:#fff;border-radius:16px;padding:22px;max-width:420px;width:100%;box-shadow:var(--shadow)}
+.modalCard h3{margin:0 0 4px;font-size:17px}
+.modalCard .sub{margin-bottom:14px}
+
+/* Style Login */
+#loginOverlay{position:fixed;inset:0;background:linear-gradient(135deg,#f8fbff,#d9e6f2);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px}
+#loginOverlay.hidden{display:none}
+.loginCard{background:#fff;border:1px solid var(--line);border-radius:20px;padding:30px;max-width:400px;width:100%;box-shadow:var(--shadow);text-align:center}
+.loginLogo{width:70px;height:70px;margin:0 auto 16px;border-radius:16px;display:flex;align-items:center;justify-content:center;background:#fff;box-shadow:0 4px 15px rgba(0,0,0,.08);padding:8px;overflow:hidden}
+.loginLogo img{width:100%;height:100%;object-fit:contain}
+.loginCard h2{margin:0 0 6px;font-size:22px}
+.loginCard .sub{margin-bottom:20px}
+.loginCard .field{text-align:left;margin-bottom:14px}
+
+.periodLabel{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:12px;font-weight:800}
+.statuspulse{animation:statusPulse 1.8s infinite}.blink{animation:blink 1.5s infinite}@keyframes statusPulse{50%{transform:scale(1.025)}}@keyframes blink{50%{opacity:.35}}
+@media(max-width:1100px){.kpis{grid-template-columns:repeat(3,1fr)}.two,.three{grid-template-columns:1fr}}
+@media(max-width:700px){.topbar-inner{padding:10px 12px}.clock{font-size:20px}.brand h1{font-size:16px}.kpis{grid-template-columns:repeat(2,1fr)}main{padding:0 12px}.formgrid{grid-template-columns:1fr}.field.full{grid-column:auto}.navbtn{padding:8px 10px;font-size:12px}}
+</style>
+</head>
+<body>
+
+<!-- OVERLAY LOGIN -->
+<div id="loginOverlay">
+  <div class="loginCard">
+    <div class="loginLogo">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Logo_KAI_Services.svg" alt="Logo KAI Services">
+    </div>
+    <h2>DATA INVENTARIS</h2>
+    <div class="sub">PAM • Regional 2 Bandung</div>
+    <form id="loginForm">
+      <div class="field">
+        <label>Username</label>
+        <input id="loginUser" required placeholder="Masukkan username">
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input id="loginPass" type="password" required placeholder="Masukkan password">
+      </div>
+      <div class="actions" style="margin-top:20px;">
+        <button class="btn primary" type="submit" style="width:100%; padding:12px;">Login ke Sistem</button>
+      </div>
+    </form>
+    <div id="loginError" style="color:var(--bad); font-size:12px; margin-top:12px; font-weight:700; display:none;"></div>
+  </div>
+</div>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="logo"><img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Logo_KAI_Services.svg" alt="Logo KAI Services"></div>
+    <div class="brand"><h1>DAFTAR INVENTARIS</h1><small>PAM • Monitoring Inventaris HT & Alkapsus</small></div>
+    <div class="live" id="syncStatusBadge"><span class="dot" id="syncDot"></span><span id="syncText">Menghubungkan Cloud...</span></div>
+    <div id="clock" class="clock">00:00:00</div>
+    <button class="btn secondary" id="btnLogout" type="button" style="margin-left:10px;">Keluar</button>
+  </div>
+  <nav>
+    <button class="navbtn active" data-page="dashboard">Dashboard</button>
+    <button class="navbtn" data-page="inventaris">Input Inventaris</button>
+    <button class="navbtn" data-page="cek">Cek Inventaris</button>
+    <button class="navbtn" data-page="publik">Data Inventaris</button>
+  </nav>
+</header>
+
+<main>
+<section id="dashboard" class="page active">
+  <div class="grid kpis">
+    <div class="card kpi"><div class="label">Total Inventaris</div><div id="kTotal" class="value blue">0</div></div>
+    <div class="card kpi"><div class="label">Kondisi Baik</div><div id="kGood" class="value green">0</div></div>
+    <div class="card kpi"><div class="label">Kondisi Rusak</div><div id="kBad" class="value red">0</div></div>
+    <div class="card kpi"><div class="label">Sudah Diperiksa</div><div id="kChecked" class="value orange">0</div></div>
+    <div class="card kpi"><div class="label">Belum Diperiksa</div><div id="kUnchecked" class="value">0</div></div>
+  </div>
+
+  <div class="grid two">
+    <div class="card panel"><h2>Grafik Distribusi Inventaris HT per Lokasi</h2><div class="sub">Jumlah inventaris HT pada setiap lokasi</div><div class="chartbox"><canvas id="locationChart"></canvas></div></div>
+    <div class="card panel"><h2>Status Kondisi Inventais HT</h2><div class="sub">Kondisi Baik dan Rusak</div><div class="chartbox"><canvas id="conditionChart"></canvas></div></div>
+  </div>
+
+  <div class="grid three">
+    <div class="card panel"><h2>Inventaris Terbaru</h2><div id="recentList"></div></div>
+    <div class="card panel"><h2>Lokasi Terbanyak</h2><div id="locationList"></div></div>
+    <div class="card panel"><h2>Aktivitas Pemeriksaan</h2><div id="activityList"></div></div>
+  </div>
+</section>
+
+<section id="inventaris" class="page">
+  <div class="card panel">
+    <h2>Formulir Inventaris</h2><div class="sub">Tambahkan data barang/HT ke sistem. Data akan **langsung tersimpan secara real-time** ke Database Cloud Firebase dan terhubung ke perangkat lain secara sinkron.</div>
+    <form id="inventoryForm">
+      <div class="formgrid">
+        <div class="field"><label>Nama Barang *</label><input id="nama" required placeholder="Contoh: HT Motorola"></div>
+        <div class="field"><label>Jenis Barang *</label><input id="jenis" required placeholder="Contoh: HT"></div>
+        <div class="field"><label>ID Barang *</label><input id="idBarang" required placeholder="Contoh: No Seri HT-001"></div>
+        <div class="field"><label>No GSM</label><input id="gsm" placeholder="Nomor GSM/SIM bila ada"></div>
+        <div class="field full"><label>Lokasi HT / Lokasi Barang *</label><input id="lokasi" required placeholder="Contoh: Stasiun Bandung"></div>
+        <div class="field"><label>Kondisi Awal</label><select id="kondisi"><option>Baik</option><option>Rusak</option></select></div>
+        <div class="field"><label>Catatan</label><input id="catatan" placeholder="Catatan tambahan"></div>
+      </div>
+      <div class="actions"><button class="btn primary" type="submit">+ Simpan</button><button class="btn secondary" type="reset">Reset</button></div>
+    </form>
+  </div>
+
+  <!-- PANEL TAMBAHAN UNTUK IMPORT EXCEL -->
+  <div class="card panel" style="margin-top: 16px;">
+    <h2>Impor Data dari File Excel</h2>
+    <div class="sub">Pilih file Excel (.xlsx / .xls) untuk memasukkan data inventaris secara massal. Data otomatis langsung tersinkronisasi ke server cloud.</div>
+    <div class="actions" style="margin-top: 14px;">
+      <input type="file" id="excelFile" accept=".xlsx, .xls, .csv" style="display: none;" onchange="handleExcelImport(event)">
+      <button class="btn secondary" type="button" onclick="document.getElementById('excelFile').click()">📂 Pilih File Excel (.xlsx/.xls)</button>
+    </div>
+  </div>
+</section>
+
+<section id="cek" class="page">
+  <div class="card panel">
+    <h2>Cek Inventaris - Rencana Pemeriksaan</h2><div class="sub">Memantau kondisi dan kelengkapan inventaris di lokasi secara real-time.</div>
+    <div class="toolbar">
+      <input id="searchCek" class="grow" placeholder="Cari nama, ID, atau lokasi...">
+      <select id="filterKondisi"><option value="">Semua kondisi</option><option>Baik</option><option>Rusak</option></select>
+      <span class="periodLabel">Periode Periksa</span>
+      <input id="tglMulai" type="date" title="Tanggal mulai">
+      <span class="sub">s/d</span>
+      <input id="tglSelesai" type="date" title="Tanggal selesai">
+      <button class="btn secondary" id="resetPeriode" type="button">Reset Periode</button>
+      <button class="btn primary" id="exportXls" type="button">📥 Ekspor XLS</button>
+    </div>
+    <div class="tablewrap"><table><thead><tr><th>Nama</th><th>Jenis</th><th>ID Barang</th><th>No GSM</th><th>Lokasi</th><th>Hasil Periksa</th><th>Kondisi</th><th>Tanggal Periksa</th><th>Nama Periksa</th><th>Aksi</th></tr></thead><tbody id="cekBody"></tbody></table></div>
+  </div>
+</section>
+
+<section id="publik" class="page">
+  <div class="card panel">
+    <h2>Daftar HT / Kondisi Inventaris Aktif</h2><div class="sub">Data Monitoring Kondisi Inventaris (Sinkron Real-Time).</div>
+    <div class="toolbar"><input id="searchPublik" class="grow" placeholder="Cari inventaris..."><select id="filterLokasi"><option value="">Semua lokasi</option></select></div>
+    <div class="tablewrap"><table><thead><tr><th>Nama Barang</th><th>Jenis</th><th>ID Barang</th><th>No GSM</th><th>Lokasi</th><th>Kondisi</th><th>Status</th></tr></thead><tbody id="publikBody"></tbody></table></div>
+  </div>
+</section>
+</main>
+
+<div class="footer">
+  <marquee scrollamount="5">📍KAI SERVICES Regional 2 Bandung • 🛡️PAM Sistem Monitoring Inventaris HT & Alkapsus • AMK @2026</marquee>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<div id="checkModal" class="modalOverlay">
+  <div class="modalCard">
+    <h3>Form Pemeriksaan</h3>
+    <div class="sub" id="checkModalItem"></div>
+    <div class="formgrid" style="grid-template-columns:1fr">
+      <div class="field"><label>Tanggal Periksa *</label><input id="chkTanggal" type="date" required></div>
+      <div class="field"><label>Nama Periksa *</label><input id="chkNama" required placeholder="Nama petugas pemeriksa"></div>
+      <div class="field"><label>Kondisi *</label><select id="chkKondisi"><option>Baik</option><option>Rusak</option></select></div>
+    </div>
+    <div class="actions"><button class="btn primary" id="chkSave" type="button">Simpan Pemeriksaan</button><button class="btn secondary" id="chkCancel" type="button">Batal</button></div>
+  </div>
+</div>
+
+<script src="supabase-firebase-compat.js"></script>
+<script>
+/* ============================================================
+   KONFIGURASI LOGIN & CREDENTIALS
+   ============================================================ */
+const VALID_USER = "admin";
+const VALID_PASS = "pamops2026";
+
+document.getElementById("loginForm").addEventListener("submit", function(e){
+  e.preventDefault();
+  const u = document.getElementById("loginUser").value.trim();
+  const p = document.getElementById("loginPass").value.trim();
+  const errEl = document.getElementById("loginError");
+
+  if(u === VALID_USER && p === VALID_PASS){
+    localStorage.setItem("isLoggedIn", "true");
+    document.getElementById("loginOverlay").classList.add("hidden");
+    toast("Login berhasil!");
+  } else {
+    errEl.style.display = "block";
+    errEl.textContent = "Username atau Password salah!";
+  }
+});
+
+document.getElementById("btnLogout").addEventListener("click", function(){
+  localStorage.removeItem("isLoggedIn");
+  document.getElementById("loginOverlay").classList.remove("hidden");
+  document.getElementById("loginUser").value = "";
+  document.getElementById("loginPass").value = "";
+  document.getElementById("loginError").style.display = "none";
+  toast("Berhasil keluar.");
+});
+
+if(localStorage.getItem("isLoggedIn") === "true"){
+  document.getElementById("loginOverlay").classList.add("hidden");
+}
+
+/* ============================================================
+   FIREBASE REALTIME DATABASE CONFIG
+   ============================================================ */
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyC_jb6Wy9dF3RDwrHSTXEc-ZFO19-7Q1lM",
+  authDomain: "cc-pam-bandung.firebaseapp.com",
+  databaseURL: "https://cc-pam-bandung-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "cc-pam-bandung",
+  storageBucket: "cc-pam-bandung.firebasestorage.app",
+  messagingSenderId: "492197455810",
+  appId: "1:492197455810:web:14c75bb79b2b29822a185b",
+  measurementId: "G-ZKT37PBHPZ"
+};
+
+let db = null;
+let firebaseEnabled = false;
+let data = JSON.parse(localStorage.getItem("inventaris_command_center") || "[]");
+let locationChart, conditionChart;
+
+function uid(){return "INV-"+Date.now().toString(36).toUpperCase()+"-"+Math.random().toString(36).slice(2,6).toUpperCase()}
+function saveLocal(){localStorage.setItem("inventaris_command_center",JSON.stringify(data));}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),2500)}
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function fmtDate(v){return v?new Date(v).toLocaleString("id-ID",{dateStyle:"short",timeStyle:"short"}):"-"}
+function fmtTgl(v){if(!v)return "-";const[y,m,d]=v.split("-");return `${d}-${m}-${y}`}
+function todayISO(){return new Date().toISOString().slice(0,10)}
+
+function updateSyncIndicator(status) {
+  const dot = document.getElementById("syncDot");
+  const text = document.getElementById("syncText");
+  if(status === "online") {
+    dot.style.background = "var(--good)";
+    text.textContent = "AMK Monitor";
+  } else if(status === "syncing") {
+    dot.style.background = "var(--warn)";
+    text.textContent = "Menyinkronkan...";
+  } else {
+    dot.style.background = "var(--bad)";
+    text.textContent = "Mode Offline";
+  }
+}
+
+function render(){
+  const total=data.length, good=data.filter(x=>x.kondisi==="Baik").length, bad=data.filter(x=>x.kondisi==="Rusak").length;
+  const checked=data.filter(x=>x.diperiksa).length;
+  document.getElementById("kTotal").textContent=total;
+  document.getElementById("kGood").textContent=good;
+  document.getElementById("kBad").textContent=bad;
+  document.getElementById("kChecked").textContent=checked;
+  document.getElementById("kUnchecked").textContent=total-checked;
+
+  renderCharts(); renderRecent(); renderLocations(); renderActivity(); renderCek(); renderPublic();
+  const loc=document.getElementById("filterLokasi"), old=loc.value;
+  const locations=[...new Set(data.map(x=>x.lokasi).filter(Boolean))].sort();
+  loc.innerHTML='<option value="">Semua lokasi</option>'+locations.map(x=>`<option>${esc(x)}</option>`).join("");
+  if(locations.includes(old))loc.value=old;
+}
+
+function renderCharts(){
+  const counts={}; data.forEach(x=>counts[x.lokasi]=(counts[x.lokasi]||0)+1);
+  const labels=Object.keys(counts), vals=Object.values(counts);
+  if(locationChart)locationChart.destroy();
+  locationChart=new Chart(document.getElementById("locationChart"),{type:"bar",data:{labels,datasets:[{label:"Jumlah Barang",data:vals,borderRadius:8}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  if(conditionChart)conditionChart.destroy();
+  conditionChart=new Chart(document.getElementById("conditionChart"),{type:"doughnut",data:{labels:["Baik","Rusak"],datasets:[{data:[data.filter(x=>x.kondisi==="Baik").length,data.filter(x=>x.kondisi==="Rusak").length]}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}}});
+}
+function renderRecent(){
+  const el=document.getElementById("recentList"), arr=[...data].sort((a,b)=>b.createdAt-a.createdAt).slice(0,5);
+  el.innerHTML=arr.length?arr.map(x=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(x.nama)}</b><br><span class="sub">${esc(x.idBarang)} • ${esc(x.lokasi)} • ${fmtDate(x.createdAt)}</span></div>`).join(""):'<div class="empty">Belum ada data.</div>';
+}
+function renderLocations(){
+  const el=document.getElementById("locationList"), c={};data.forEach(x=>c[x.lokasi]=(c[x.lokasi]||0)+1);
+  const arr=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  el.innerHTML=arr.length?arr.map(([k,v])=>`<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--line)"><span>${esc(k)}</span><b>${v}</b></div>`).join(""):'<div class="empty">Belum ada lokasi.</div>';
+}
+function renderActivity(){
+  const el=document.getElementById("activityList"), arr=[...data].filter(x=>x.diperiksa).sort((a,b)=>b.checkedAt-a.checkedAt).slice(0,6);
+  el.innerHTML=arr.length?arr.map(x=>`<div style="padding:10px 0;border-bottom:1px solid var(--line)"><b>${esc(x.nama)}</b> <span class="badge ${x.kondisi==="Baik"?"baik":"rusak"}">${esc(x.kondisi)}</span><br><span class="sub">${esc(x.lokasi)} • ${esc(x.namaPeriksa||"-")} • ${fmtTgl(x.tanggalPeriksa)}</span></div>`).join(""):'<div class="empty">Belum ada pemeriksaan.</div>';
+}
+function matches(x,q){q=q.toLowerCase();return !q||[x.nama,x.jenis,x.idBarang,x.gsm,x.lokasi,x.namaPeriksa].join(" ").toLowerCase().includes(q)}
+function inPeriod(x){
+  const start=document.getElementById("tglMulai").value, end=document.getElementById("tglSelesai").value;
+  if(!start&&!end)return true;
+  if(!x.tanggalPeriksa)return false;
+  if(start&&x.tanggalPeriksa<start)return false;
+  if(end&&x.tanggalPeriksa>end)return false;
+  return true;
+}
+function renderCek(){
+  const q=document.getElementById("searchCek").value, fk=document.getElementById("filterKondisi").value;
+  const rows=data.filter(x=>matches(x,q)&&(!fk||x.kondisi===fk)&&inPeriod(x));
+  document.getElementById("cekBody").innerHTML=rows.length?rows.map(x=>`<tr>
+    <td><b>${esc(x.nama)}</b></td><td>${esc(x.jenis)}</td><td>${esc(x.idBarang)}</td><td>${esc(x.gsm||"-")}</td><td>${esc(x.lokasi)}</td>
+    <td>${x.diperiksa?'<span class="badge aktif">SUDAH DIPERIKSA</span>':'<span class="badge">BELUM DIPERIKSA</span>'}</td>
+    <td><span class="badge ${x.kondisi==="Baik"?"baik":"rusak"}">${esc(x.kondisi)}</span></td>
+    <td>${fmtTgl(x.tanggalPeriksa)}</td><td>${esc(x.namaPeriksa||"-")}</td>
+    <td><button class="btn ${x.diperiksa?"secondary":"primary"}" onclick="openCheckModal('${x.id}')">${x.diperiksa?"Periksa Ulang":"Cek Sekarang"}</button> <button class="btn danger" onclick="deleteItem('${x.id}')">Hapus</button></td>
+  </tr>`).join(""):'<tr><td colspan="10" class="empty">Data tidak ditemukan.</td></tr>';
+}
+function renderPublic(){
+  const q=document.getElementById("searchPublik").value, fl=document.getElementById("filterLokasi").value;
+  const rows=data.filter(x=>matches(x,q)&&(!fl||x.lokasi===fl));
+  document.getElementById("publikBody").innerHTML=rows.length?rows.map(x=>`<tr class="${x.diperiksa?"":"statuspulse"}">
+    <td><b>${esc(x.nama)}</b></td><td>${esc(x.jenis)}</td><td>${esc(x.idBarang)}</td><td>${esc(x.gsm||"-")}</td><td>${esc(x.lokasi)}</td>
+    <td><span class="badge ${x.kondisi==="Baik"?"baik":"rusak"}">${esc(x.kondisi)}</span></td>
+    <td>${x.diperiksa?'<span class="badge aktif">AKTIF / TERDATA</span>':'<span class="badge orange">MENUNGGU CEK</span>'}</td>
+  </tr>`).join(""):'<tr><td colspan="7" class="empty">Belum ada inventaris.</td></tr>';
+}
+
+/* FUNGSI UTAMA PERSISTENCE CLOUD FIREBASE */
+function persist(){
+  saveLocal();
+  if(firebaseEnabled && db) {
+    updateSyncIndicator("syncing");
+    db.ref("inventaris").set(data).then(() => {
+      updateSyncIndicator("online");
+    }).catch(err => {
+      console.error("Gagal sinkronisasi ke cloud:", err);
+      updateSyncIndicator("offline");
+    });
+  } else {
+    updateSyncIndicator("offline");
+  }
+  render();
+}
+
+let currentCheckId=null;
+function openCheckModal(id){
+  const x=data.find(a=>a.id===id);if(!x)return;
+  currentCheckId=id;
+  document.getElementById("checkModalItem").textContent=`${x.nama} • ${x.idBarang} • ${x.lokasi}`;
+  document.getElementById("chkTanggal").value=x.tanggalPeriksa||todayISO();
+  document.getElementById("chkNama").value=x.namaPeriksa||"";
+  document.getElementById("chkKondisi").value=x.kondisi||"Baik";
+  document.getElementById("checkModal").classList.add("show");
+  document.getElementById("chkNama").focus();
+}
+function closeCheckModal(){document.getElementById("checkModal").classList.remove("show");currentCheckId=null}
+function saveCheck(){
+  const x=data.find(a=>a.id===currentCheckId);if(!x)return;
+  const tgl=document.getElementById("chkTanggal").value;
+  const nama=document.getElementById("chkNama").value.trim();
+  if(!tgl){toast("Tanggal periksa wajib diisi.");return}
+  if(!nama){toast("Nama pemeriksa wajib diisi.");return}
+  x.tanggalPeriksa=tgl;x.namaPeriksa=nama;x.kondisi=document.getElementById("chkKondisi").value;
+  x.diperiksa=true;x.checkedAt=Date.now();
+  persist(); closeCheckModal(); toast("Pemeriksaan berhasil disimpan & disinkronkan ke Cloud!");
+}
+document.getElementById("chkSave").addEventListener("click",saveCheck);
+document.getElementById("chkCancel").addEventListener("click",closeCheckModal);
+document.getElementById("checkModal").addEventListener("click",e=>{if(e.target.id==="checkModal")closeCheckModal()});
+function deleteItem(id){
+  if(!confirm("Hapus data inventaris ini?"))return;
+  data=data.filter(x=>x.id!==id); persist(); toast("Data dihapus & disinkronkan ke Cloud.");
+}
+
+document.getElementById("exportXls").addEventListener("click", () => {
+  const q = document.getElementById("searchCek").value, fk = document.getElementById("filterKondisi").value;
+  const rows = data.filter(x => matches(x, q) && (!fk || x.kondisi === fk) && inPeriod(x));
+  
+  if(!rows.length) {
+    toast("Tidak ada data untuk diexport.");
+    return;
+  }
+
+  let html = `<table><thead><tr><th>Nama</th><th>Jenis</th><th>ID Barang</th><th>No GSM</th><th>Lokasi</th><th>Status Periksa</th><th>Kondisi</th><th>Tanggal Periksa</th><th>Nama Periksa</th></tr></thead><tbody>`;
+  rows.forEach(x => {
+    html += `<tr><td>${x.nama}</td><td>${x.jenis}</td><td>${x.idBarang}</td><td>${x.gsm || "-"}</td><td>${x.lokasi}</td><td>${x.diperiksa ? 'SUDAH DIPERIKSA' : 'BELUM DIPERIKSA'}</td><td>${x.kondisi}</td><td>${fmtTgl(x.tanggalPeriksa)}</td><td>${x.namaPeriksa || "-"}</td></tr>`;
+  });
+  html += `</tbody></table>`;
+
+  const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Laporan_Cek_Inventaris_${todayISO()}.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  toast("Berhasil mengunduh file XLS.");
+});
+
+/* IMPOR EXCEL LANGSUNG TERSINKRONISASI KE CLOUD */
+function handleExcelImport(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const dataBuf = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(dataBuf, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonRows = XLSX.utils.sheet_to_json(worksheet);
+      
+      if (!jsonRows.length) {
+        toast("File Excel kosong atau format tidak sesuai.");
+        return;
+      }
+
+      let countAdded = 0;
+      jsonRows.forEach(row => {
+        const newItem = {
+          id: uid(),
+          nama: String(row["Nama Barang"] || row["Nama"] || "Tanpa Nama"),
+          jenis: String(row["Jenis Barang"] || row["Jenis"] || "HT"),
+          idBarang: String(row["ID Barang"] || row["No Seri"] || "-"),
+          gsm: String(row["No GSM"] || row["GSM"] || ""),
+          lokasi: String(row["Lokasi"] || row["Lokasi HT"] || "Pusat"),
+          kondisi: String(row["Kondisi"] || "Baik").toLowerCase().includes("rusak") ? "Rusak" : "Baik",
+          catatan: String(row["Catatan"] || ""),
+          diperiksa: false,
+          createdAt: Date.now(),
+          checkedAt: null,
+          tanggalPeriksa: null,
+          namaPeriksa: null
+        };
+        data.unshift(newItem);
+        countAdded++;
+      });
+
+      persist();
+      toast(`Berhasil mengimpor ${countAdded} data & tersinkronisasi ke cloud!`);
+      event.target.value = "";
+    } catch (err) {
+      console.error(err);
+      toast("Gagal membaca file Excel. Pastikan format benar.");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+/* SIMPAN MANUAL INVENTARIS BARU LANGSUNG KE CLOUD */
+document.getElementById("inventoryForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const x = {
+    id: uid(),
+    nama: document.getElementById("nama").value.trim(),
+    jenis: document.getElementById("jenis").value.trim(),
+    idBarang: document.getElementById("idBarang").value.trim(),
+    gsm: document.getElementById("gsm").value.trim(),
+    lokasi: document.getElementById("lokasi").value.trim(),
+    kondisi: document.getElementById("kondisi").value,
+    catatan: document.getElementById("catatan").value.trim(),
+    diperiksa: false,
+    createdAt: Date.now(),
+    checkedAt: null,
+    tanggalPeriksa: null,
+    namaPeriksa: null
+  };
+  data.unshift(x);
+  persist(); // Menyimpan ke database Realtime Firebase
+  e.target.reset();
+  toast("Inventaris berhasil disimpan & tersinkronisasi real-time!");
+  document.querySelector('[data-page="dashboard"]').click();
+});
+
+["searchCek","filterKondisi","searchPublik","filterLokasi","tglMulai","tglSelesai"].forEach(id=>document.getElementById(id).addEventListener("input",render));
+document.getElementById("resetPeriode").addEventListener("click",()=>{document.getElementById("tglMulai").value="";document.getElementById("tglSelesai").value="";render()});
+
+document.querySelectorAll(".navbtn").forEach(b=>b.addEventListener("click",()=>{
+  document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("active"));b.classList.add("active");
+  document.querySelectorAll(".page").forEach(x=>x.classList.remove("active"));document.getElementById(b.dataset.page).classList.add("active");
+}));
+
+function clock(){document.getElementById("clock").textContent=new Date().toLocaleTimeString("id-ID",{hour12:false})}
+setInterval(clock,1000);clock();
+
+/* KONEKSI REAL-TIME DENGAN FIREBASE */
+async function loadFirebase(){
+  try{
+    if(!window.firebase) throw new Error("Adapter database belum tersedia");
+    if(!firebase.apps.length) firebase.initializeApp({projectId:"sipk-command-center",databaseURL:"/api/db"});
+    db=firebase.database();
+    firebaseEnabled=true;
+    db.ref("inventaris").on("value", snap=>{
+      const fbData=snap.val();
+      if(fbData!==null){ data=Array.isArray(fbData)?fbData:Object.values(fbData||{}); saveLocal(); render(); updateSyncIndicator("online"); }
+      else if(data.length>0){ db.ref("inventaris").set(data); updateSyncIndicator("online"); }
+      else updateSyncIndicator("online");
+    }, err=>{ console.warn("Gagal terhubung database:",err); updateSyncIndicator("offline"); });
+  }catch(e){ console.warn(e); updateSyncIndicator("offline"); }
+}
+loadFirebase().catch(e=>{
+  console.warn("Firebase belum aktif:",e);
+  updateSyncIndicator("offline");
+});
+
+render();
+</script>
+</body>
+</html>

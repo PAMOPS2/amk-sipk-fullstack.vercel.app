@@ -1,0 +1,1004 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Laporan Kejadian — PAM Integrated System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<!-- SheetJS untuk membaca file Excel (.xls / .xlsx) secara native -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+:root{--bg:#f1f5f9;--panel:#ffffff;--line:#cbd5e1;--text:#0f172a;--muted:#64748b;--blue:#2563eb;--cyan:#0891b2;--orange:#d97706;--green:#059669;--red:#dc2626;--shadow:0 10px 25px rgba(0,0,0,.06)}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;font-family:Inter,system-ui,sans-serif;background:radial-gradient(circle at 15% 0,#e2e8f0 0,#f1f5f9 35%,#e9d5ff 100%);color:var(--text)}
+button,input,textarea,select{font:inherit}button{cursor:pointer}.app{min-height:100vh;display:flex;flex-direction:column;justify-content:space-between}
+.top{position:sticky;top:0;z-index:1000;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);border-bottom:1px solid var(--line)}
+.topin{height:72px;max-width:1600px;margin:auto;padding:0 22px;display:flex;align-items:center;justify-content:space-between;gap:18px}
+.brand{display:flex;align-items:center;gap:12px}
+.brandmark{width:70px;height:70px;border-radius:12px;display:grid;place-items:center;background:#ffffff;border:0px solid var(--line);box-shadow:0 0px 0x rgba(0,0,0,.04);padding:0px}
+.brandmark img{width:100%;height:100%;object-fit:contain}
+.brand b{display:block;font-size:16px}.brand span{display:block;color:var(--muted);font-size:11px;margin-top:2px}
+.nav{display:flex;gap:7px;background:#e2e8f0;border:1px solid var(--line);padding:5px;border-radius:12px}.nav button{border:0;background:transparent;color:var(--muted);padding:9px 14px;border-radius:8px;font-weight:600}.nav button.active{background:#ffffff;color:#0f172a;font-weight:800;box-shadow:0 2px 6px rgba(0,0,0,.08)}
+.user-status{display:flex;align-items:center;gap:10px}
+.btn-logout{background:#fee2e2;color:#dc2626;border:1px solid #fecaca;padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700}
+.live{display:flex;align-items:center;gap:8px;color:#334155;font-size:12px}.dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 10px var(--green);animation:pulse 1.5s infinite}@keyframes pulse{50%{opacity:.35;transform:scale(.75)}}
+main{max-width:1600px;width:100%;margin:auto;padding:22px;flex:1}
+.hero{display:flex;justify-content:space-between;align-items:end;margin-bottom:18px}.hero h1{margin:0;font-size:27px}.hero p{margin:7px 0 0;color:var(--muted);font-size:13px}
+.clock-box{background:#ffffff;border:1px solid var(--line);padding:8px 16px;border-radius:10px;text-align:right;box-shadow:var(--shadow)}
+.clock-title{font-size:10px;color:var(--cyan);font-weight:800;letter-spacing:0.08em;margin-bottom:2px;display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.clock{font-size:20px;font-weight:800;color:var(--text);font-variant-numeric:tabular-nums}.date{font-size:11px;color:var(--muted);margin-top:2px}
+
+.period-bar{background:#ffffff;border:1px solid var(--line);padding:10px 16px;border-radius:12px;display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;box-shadow:var(--shadow);flex-wrap:wrap;gap:10px}
+.period-tabs{display:flex;gap:6px}
+.period-tabs button{background:#f1f5f9;border:1px solid var(--line);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:700;color:var(--muted)}
+.period-tabs button.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.period-summary{font-size:12px;color:var(--muted);font-weight:600}
+
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:13px;margin-bottom:16px}.kpi{background:linear-gradient(145deg,#ffffff,#f8fafc);border:1px solid var(--line);border-radius:14px;padding:16px;box-shadow:var(--shadow);position:relative;overflow:hidden}.kpi small{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.08em}.num{font-size:30px;font-weight:800;margin-top:7px;color:#0f172a}.trend{font-size:11px;color:var(--muted);margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(2, minmax(0, 1fr));gap:16px}.panel{background:linear-gradient(145deg,#ffffff,#f8fafc);border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}.ph{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--line)}.ph h2{font-size:14px;margin:0}.ph span{font-size:11px;color:var(--muted)}
+
+.category-chart-container{display:flex;align-items:flex-end;justify-content:space-between;height:220px;padding:15px 5px 5px 5px;gap:6px;border-bottom:1px solid var(--line);overflow-x:auto}
+.cat-bar-group{flex:1;min-width:42px;display:flex;flex-direction:column;align-items:center;height:100%;justify-content:flex-end;gap:4px}
+.cat-bar-wrapper{width:100%;max-width:32px;height:100%;background:#f1f5f9;border-radius:6px;display:flex;align-items:flex-end;overflow:hidden;border:1px solid #e2e8f0}
+.cat-bar-fill{width:100%;background:linear-gradient(180deg,#2563eb,#06b6d4);border-radius:6px 6px 0 0;transition:height .4s ease}
+.cat-label{font-size:8px;color:var(--muted);font-weight:600;text-align:center;max-width:55px;height:24px;overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;line-height:1.1}
+.cat-val{font-size:9px;font-weight:700;color:var(--text)}
+
+.trend-chart-container{position:relative;height:220px;padding:15px 15px 10px 15px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;justify-content:flex-end}
+.trend-svg-wrap{width:100%;height:150px;overflow:visible}
+.trend-labels-row{display:flex;justify-content:space-between;padding-top:8px;border-top:1px dashed #e2e8f0}
+.trend-label-item{font-size:10px;color:var(--muted);font-weight:600;text-align:center;flex:1}
+
+.side{display:grid;grid-template-rows:auto 1fr}.filters{display:flex;gap:7px;padding:12px 16px;border-bottom:1px solid var(--line);flex-wrap:wrap}.filters select,.filters input,.field input,.field textarea,.field select{background:#ffffff;color:var(--text);border:1px solid var(--line);border-radius:8px;padding:9px 10px;outline:none}.filters select:focus,.field input:focus,.field textarea:focus{border-color:var(--blue)}
+.reportlist{max-height:420px;overflow:auto}.report{padding:13px 15px;border-bottom:1px solid #e2e8f0}.report:hover{background:#f1f5f9}.rhead{display:flex;justify-content:space-between;gap:8px}.rtitle{font-weight:700;font-size:12px;color:#0f172a}.meta{color:var(--muted);font-size:10px;margin-top:5px}.desc{color:#334155;font-size:11px;line-height:1.5;margin-top:6px}.badge{display:inline-flex;padding:4px 7px;border-radius:99px;font-size:9px;font-weight:800;white-space:nowrap}.baru{background:#fef3c7;color:#d97706;border:1px solid #fde68a}.proses{background:#dbeafe;color:#2563eb;border:1px solid #bfdbfe}.selesai{background:#d1fae5;color:#059669;border:1px solid #a7f3d0}.cat{color:#0284c7}.loc-badge{color:#d97706;font-weight:600}
+.tablewrap{overflow:auto}.table{width:100%;border-collapse:collapse;min-width:900px}.table th,.table td{padding:12px 13px;border-bottom:1px solid #e2e8f0;text-align:left;font-size:11px}.table th{color:#475569;text-transform:uppercase;letter-spacing:.06em;font-size:9px;background:#f8fafc}.table td{color:#334155}.table select{background:#ffffff;color:#0f172a;border:1px solid var(--line);border-radius:7px;padding:6px}
+.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:17px}.field{display:flex;flex-direction:column;gap:6px}.field label{font-size:11px;color:#475569;font-weight:600}.field.full{grid-column:1/-1}.field textarea{min-height:115px;resize:vertical}.cats{display:grid;grid-template-columns:repeat(2,1fr);gap:7px}.catbtn{padding:10px;border:1px solid var(--line);background:#ffffff;color:#475569;border-radius:8px;text-align:left;font-size:11px;cursor:pointer}.catbtn.active{background:#2563eb;color:#fff;border-color:#2563eb}.actions{grid-column:1/-1;display:flex;gap:9px;margin-top:10px}.btn{border:0;border-radius:9px;padding:10px 14px;font-weight:700;font-size:11px;display:inline-flex;align-items:center;gap:6px}.primary{background:linear-gradient(135deg,#2563eb,#06b6d4);color:#fff}.secondary{background:#f1f5f9;color:#334155;border:1px solid var(--line)}.btn-import{background:#e0f2fe;color:#0369a1;border:1px solid #bae6fd}.btn-xls{background:#ecfdf5;color:#047857;border:1px solid #a7f3d0}.danger{background:#fee2e2;color:#dc2626;border:1px solid #fecaca}.notice{margin:0 17px 17px;padding:11px 12px;border-radius:99px;background:#ecfdf5;border:1px solid #a7f3d0;color:#047857;font-size:11px;display:none}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;padding:14px 16px}.mini{border:1px solid var(--line);background:#ffffff;border-radius:10px;padding:12px}.mini small{font-size:10px;color:var(--muted)}.mini b{display:block;font-size:22px;margin-top:5px;color:#0f172a}
+
+.modal-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.5);backdrop-filter:blur(6px);z-index:3000;display:flex;align-items:center;justify-content:center}
+.login-card{background:#ffffff;border:1px solid var(--line);border-radius:16px;padding:30px;width:100%;max-width:380px;box-shadow:var(--shadow);text-align:center}
+.login-card h2{margin:0 0 6px;font-size:18px;color:var(--text)}
+.login-card p{margin:0 0 20px;font-size:12px;color:var(--muted)}
+.login-form{display:flex;flex-direction:column;gap:12px}
+.login-form input{background:#f8fafc;color:#0f172a;border:1px solid var(--line);padding:12px;border-radius:8px;font-size:13px;outline:none}
+.login-form input:focus{border-color:var(--blue)}
+.login-form button{background:linear-gradient(135deg,#2563eb,#06b6d4);color:#fff;border:0;padding:12px;border-radius:8px;font-weight:700;font-size:13px;margin-top:5px}
+
+.footer-marquee{width:100%;background:#ffffff;border-top:1px solid var(--line);padding:10px 0;overflow:hidden;position:relative;flex-shrink:0;z-index:100}
+.marquee-track{display:flex;width:max-content;animation:scrollLeft 30s linear infinite}
+.marquee-track:hover{animation-play-state:paused}
+.marquee-content{display:flex;align-items:center;gap:40px;padding-left:100vw;white-space:nowrap}
+.marquee-item{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--muted);font-weight:500}
+.marquee-item b{color:var(--cyan)}
+@keyframes scrollLeft{ 0% { transform: translateX(0); } 100% { transform: translateX(-100%); } }
+
+.empty{padding:40px;text-align:center;color:#94a3b8;font-size:12px}
+.toast{position:fixed;right:20px;bottom:60px;z-index:2000;background:#ffffff;border:1px solid var(--line);color:#0f172a;padding:12px 15px;border-radius:10px;box-shadow:var(--shadow);font-size:11px;display:none}
+.hidden{display:none!important}
+@media(max-width:1200px){.grid{grid-template-columns:1fr}.kpis{grid-template-columns:repeat(2,1fr)}.topin{height:auto;padding:10px 14px}.live{display:none}}
+</style>
+</head>
+<body>
+
+<audio id="audioHaljol" src="haljol.mp3" preload="auto"></audio>
+<audio id="audioAlert" src="alert.mp3" preload="auto"></audio>
+
+<div class="app">
+<header class="top"><div class="topin">
+  <div class="brand">
+    <div class="brandmark">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Logo_KAI_Services.svg" alt="Logo KAI Services">
+    </div>
+    <div><b>SECURITY OPERATIONS DASHBOARD</b><span>PAM - Regional 2 Bandung</span></div>
+  </div>
+  <div class="nav">
+    <button id="navPublic" class="active" onclick="showPage('public')">MONITORING</button>
+    <button id="navAdmin" onclick="showPage('admin')">ADMIN</button>
+    <button id="navReport" onclick="showPage('report')">BUAT LAPORAN</button>
+  </div>
+  <div class="user-status">
+    <button id="btnLogout" class="btn-logout hidden" onclick="logout()">🔒 LOGOUT ADMIN</button>
+    <div class="live"><i class="dot"></i> MONITORING AMK</div>
+  </div>
+</div></header>
+
+<main id="publicPage">
+  <div class="hero">
+    <div><h1>LAPORAN KEJADIAN</h1><p>Informasi Pengamanan Terintegrasi</p></div>
+    <div class="clock-box">
+      <div class="clock-title"><i class="dot" style="width:6px;height:6px;"></i>LIVE</div>
+      <div class="clock" id="clock">--:--:-- WIB</div>
+      <div class="date" id="date">--</div>
+    </div>
+  </div>
+
+  <div class="period-bar">
+    <div class="period-tabs">
+      <button id="pBtnHari" class="active" onclick="setPeriod('hari')">Hari Ini</button>
+      <button id="pBtnBulan" onclick="setPeriod('bulan')">Bulan Ini</button>
+      <button id="pBtnTahun" onclick="setPeriod('tahun')">Tahun Ini</button>
+      <button id="pBtnSemua" onclick="setPeriod('semua')">Semua Periode</button>
+    </div>
+    <div class="period-summary" id="periodSummaryText">Menampilkan data periode: Hari Ini</div>
+  </div>
+
+  <section class="kpis">
+    <div class="kpi"><small>Total Laporan</small><div class="num" id="kTotal">0</div><div class="trend" id="tTotal">Periode aktif</div></div>
+    <div class="kpi"><small>Baru</small><div class="num" id="kBaru">0</div><div class="trend">Menunggu penanganan</div></div>
+    <div class="kpi"><small>Diproses</small><div class="num" id="kProses">0</div><div class="trend">Sedang ditindaklanjuti</div></div>
+    <div class="kpi"><small>Selesai</small><div class="num" id="kSelesai">0</div><div class="trend">Telah diselesaikan</div></div>
+  </section>
+
+  <div class="grid">
+    <!-- Panel 1: Per Kategori -->
+    <section class="panel">
+      <div class="ph"><h2>LAPORAN KEJADIAN PER KATEGORI</h2><span id="chartTotalKategori">0 kategori</span></div>
+      <div style="padding:15px;">
+        <div id="categoryChart" class="category-chart-container"></div>
+        <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted);">Statistik volume berdasarkan kategori kejadian</div>
+      </div>
+    </section>
+
+    <!-- Panel 2: Trend Harian -->
+    <section class="panel">
+      <div class="ph"><h2>TREND LAPORAN KEJADIAN MINGGU INI</h2><span id="trendSubtitle">7 Hari Terakhir</span></div>
+      <div style="padding:15px;">
+        <div id="trendChart" class="trend-chart-container"></div>
+        <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted);">Statistik volume laporan masuk berdasar waktu</div>
+      </div>
+    </section>
+
+    <!-- Panel 3: Total Laporan Per Bulan -->
+    <section class="panel">
+      <div class="ph"><h2>TOTAL LAPORAN PER BULAN</h2><span id="monthlySubtitle">Tahun Ini</span></div>
+      <div style="padding:15px;">
+        <div id="monthlyChart" class="trend-chart-container"></div>
+        <div style="text-align:center;margin-top:10px;font-size:11px;color:var(--muted);">Akumulasi jumlah total laporan masuk setiap bulan</div>
+      </div>
+    </section>
+
+    <!-- Panel 4: Laporan Terkini -->
+    <section class="panel side">
+      <div class="ph"><h2>LAPORAN TERKINI</h2><span id="syncBadgeHaljol">INFORMASI</span></div>
+      <div class="filters">
+        <select id="filterStatus" onchange="render()"><option value="">Semua status</option><option>Baru</option><option>Diproses</option><option>Selesai</option></select>
+        <select id="filterCat" onchange="render()">
+          <option value="">Semua kategori</option>
+          <option>Gangguan PERKA</option>
+          <option>Kamtib</option>
+          <option>Pencurian</option>
+          <option>Pelecehan Seksual</option>
+          <option>Merokok Dalam KA</option>
+          <option>Penumpang Sakit</option>
+          <option>PNP Tidak Bertiket</option>
+          <option>Pelemparan KA</option>
+          <option>Penemperan KA</option>
+        </select>
+        <input id="search" oninput="render()" placeholder="Cari laporan..." style="flex:1;min-width:120px">
+      </div>
+      <div id="reportList" class="reportlist"></div>
+    </section>
+  </div>
+</main>
+
+<main id="adminPage" class="hidden">
+  <div class="hero"><div><h1>Admin Control Room</h1><p>Kelola status laporan, impor data XLS, dan ekspor data ke format spreadsheet.</p></div></div>
+  <section class="panel">
+    <div class="stats">
+      <div class="mini"><small>BARU</small><b id="aBaru">0</b></div>
+      <div class="mini"><small>DIPROSES</small><b id="aProses">0</b></div>
+      <div class="mini"><small>SELESAI</small><b id="aSelesai">0</b></div>
+    </div>
+    <div class="filters" style="justify-content:space-between;align-items:center;">
+      <div style="display:flex;gap:7px;">
+        <select id="aFilterStatus" onchange="renderAdmin()"><option value="">Semua status</option><option>Baru</option><option>Diproses</option><option>Selesai</option></select>
+        <select id="aFilterCat" onchange="renderAdmin()">
+          <option value="">Semua kategori</option>
+          <option>Gangguan PERKA</option>
+          <option>Kamtib</option>
+          <option>Pencurian</option>
+          <option>Pelecehan Seksual</option>
+          <option>Merokok Dalam KA</option>
+          <option>Penumpang Sakit</option>
+          <option>Tidak Bertiket</option>
+          <option>Pelemparan KA</option>
+          <option>Penemperan KA</option>
+        </select>
+      </div>
+      <div style="display:flex;gap:7px;flex-wrap:wrap;">
+        <input type="file" id="importXlsFile" accept=".xls,.xlsx" style="display:none" onchange="importFromXLS(event)">
+        <button class="btn btn-import" type="button" onclick="document.getElementById('importXlsFile').click()">📥 IMPORT XLS</button>
+        <button class="btn btn-xls" type="button" onclick="exportToXLS()">📊 EXPORT XLS</button>
+      </div>
+    </div>
+    <div class="tablewrap">
+      <table class="table">
+        <thead><tr><th>ID / Waktu</th><th>Laporan & Lokasi</th><th>Kategori</th><th>Pelapor</th><th>Status</th><th>Aksi</th><th>HAPUS</th></tr></thead>
+        <tbody id="adminTable"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<main id="reportPage" class="hidden">
+  <div class="hero"><div><h1>Input Laporan Kejadian</h1><p>Lengkapi formulir di bawah ini untuk membuat laporan kejadian baru.</p></div></div>
+  <section class="panel">
+    <form id="reportForm" class="formgrid">
+      <div class="field full"><label>JUDUL LAPORAN *</label><input id="judul" required placeholder="Masukkan judul laporan..."></div>
+      <div class="field full"><label>NAMA PELAPOR *</label><input id="namaPelapor" required placeholder="Masukkan nama pelapor..."></div>
+      <div class="field"><label>TANGGAL *</label><input type="date" id="tanggal" required onchange="updateHariOtomatis()"></div>
+      <div class="field"><label>HARI *</label><input id="hari" required placeholder="Otomatis terisi dari tanggal..." readonly style="background:#f1f5f9; cursor:not-allowed;"></div>
+      <div class="field"><label>PUKUL / JAM *</label><input type="time" id="pukul" required></div>
+      <div class="field"><label>TEMPAT / LOKASI *</label><input id="lokasi" required placeholder="Contoh: Stasiun Bandung / KA 120..."></div>
+      <div class="field full"><label>KATEGORI *</label><div class="cats" id="cats"></div></div>
+      <div class="field full"><label>KRONOLOGI KEJADIAN / DESKRIPSI KEJADIAN *</label><textarea id="deskripsi" required placeholder="Jelaskan kronologi atau deskripsi kejadian secara rinci..."></textarea></div>
+      <div class="field full"><label>FOTO (OPSIONAL)</label><input type="file" id="foto" accept="image/*"></div>
+      <div class="actions">
+        <button class="btn primary" type="submit">KIRIM LAPORAN</button>
+        <button class="btn secondary" type="reset" onclick="resetFormCustom()">RESET FORM</button>
+      </div>
+    </form>
+    <div id="notice" class="notice"></div>
+  </section>
+</main>
+
+<footer class="footer-marquee">
+  <div class="marquee-track">
+    <div class="marquee-content">
+      <div class="marquee-item">🛡️ <b>PAM KAI SERVICES</b> — Sistem Keamanan Terintegrasi 24/7</div>
+      <div class="marquee-item">📍 <b>AREA PATROLI :</b> Pengamanan Wilayah Daop 2 Bandung</div>
+      <div class="marquee-item">🛡️<b style="color:var(--green)">OPERATIONAL SUPPORT PAM - Regional 2 Bandung</b></div>
+      <div class="marquee-item">📢 <b>INFO KESELAMATAN:</b> Laporkan segera setiap potensi gangguan keamanan melalui laporan kejadian.</div>
+      <div class="marquee-item">🛡️ Unit Pengamanan Siaga Utama • Hotline Darurat Intercom internal - AMK @2026 </div>
+    </div>
+  </div>
+</footer>
+</div>
+
+<!-- Modal Login Admin -->
+<div id="loginModal" class="modal-overlay hidden">
+
+  <div class="login-card">
+    <div style="display:inline-flex;align-items:center;justify-content:center;height:52px;padding:0 14px;border-radius:12px;background:#f8fafc;border:1px solid var(--line);margin-bottom:14px;">
+      <img src="https://upload.wikimedia.org/wikipedia/commons/4/45/Logo_KAI_Services.svg" alt="Logo KAI Services" style="height:26px;object-fit:contain;">
+    </div>
+    <h2>🔑 Akses Terbatas</h2>
+    <p>Admin Control Room.</p>
+    <form id="loginForm" class="login-form">
+      <input type="text" id="loginUser" placeholder="Username" required autocomplete="off">
+      <input type="password" id="loginPass" placeholder="Password" required>
+      <button type="submit">MASUK</button>
+      <button type="button" style="background:transparent;border:0;color:var(--muted);font-size:11px;" onclick="closeLogin()">Batal</button>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Konfirmasi PIN Hapus Data -->
+<div id="pinModal" class="modal-overlay hidden">
+  <div class="login-card">
+    <div style="display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:12px;background:#fee2e2;color:#dc2626;border:1px solid #fecaca;margin-bottom:14px;font-size:20px;">
+      🛡️
+    </div>
+    <h2>Masukan PIN</h2>
+    <p>Anda akan menghapus Data Laporan.</p>
+    <form id="pinForm" class="login-form">
+      <input type="password" id="adminDeletePin" placeholder="Masukkan PIN" required autocomplete="off">
+      <button type="submit" style="background:linear-gradient(135deg,#dc2626,#991b1b); color:#fff;">KONFIRMASI HAPUS</button>
+      <button type="button" style="background:transparent;border:0;color:var(--muted);font-size:11px;" onclick="closePinModal()">Batal</button>
+    </form>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="supabase-firebase-compat.js"></script>
+<script>
+const ADMIN_USER = "admin";
+const ADMIN_PASS = "pamops2026";
+let isAdminLoggedIn = sessionStorage.getItem('sipk_admin_auth') === 'true';
+let currentPeriod = 'hari';
+let pendingDeleteId = null;
+
+function updateAuthUI() {
+  const btnLogout = document.getElementById('btnLogout');
+  if (isAdminLoggedIn) btnLogout.classList.remove('hidden');
+  else btnLogout.classList.add('hidden');
+}
+
+function openLogin() {
+  document.getElementById('loginModal').classList.remove('hidden');
+  document.getElementById('loginUser').focus();
+}
+
+function closeLogin() {
+  document.getElementById('loginModal').classList.add('hidden');
+}
+
+document.getElementById('loginForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const u = document.getElementById('loginUser').value.trim();
+  const p = document.getElementById('loginPass').value.trim();
+  if (u === ADMIN_USER && p === ADMIN_PASS) {
+    isAdminLoggedIn = true;
+    sessionStorage.setItem('sipk_admin_auth', 'true');
+    closeLogin();
+    toast('Login Admin Berhasil');
+    document.getElementById('loginForm').reset();
+    updateAuthUI();
+    showPage('admin');
+  } else {
+    toast('Username atau Password salah!');
+  }
+});
+
+function logout() {
+  isAdminLoggedIn = false;
+  sessionStorage.removeItem('sipk_admin_auth');
+  updateAuthUI();
+  toast('Admin telah logout');
+  showPage('public');
+}
+
+const STORAGE_KEY = 'sipk_integrated_db_v2';
+const dbChannel = new BroadcastChannel('sipk_db_sync');
+
+const FIREBASE_CONFIG_HALJOL = {
+  apiKey: "AIzaSyC_jb6Wy9dF3RDwrHSTXEc-ZFO19-7Q1lM",
+  authDomain: "cc-pam-bandung.firebaseapp.com",
+  databaseURL: "https://cc-pam-bandung-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "cc-pam-bandung",
+  storageBucket: "cc-pam-bandung.firebasestorage.app",
+  messagingSenderId: "492197455810",
+  appId: "1:492197455810:web:2f25c5e9ba9f64ac2a185b",
+  measurementId: "G-P4PW6850TQ"
+};
+const DB_PATH_HALJOL = 'laporan_haljol';
+let modeFirebaseHaljol = false;
+let fbRefHaljol = null;
+
+function configLengkapHaljol(){
+  return !!(FIREBASE_CONFIG_HALJOL && FIREBASE_CONFIG_HALJOL.apiKey && FIREBASE_CONFIG_HALJOL.databaseURL);
+}
+
+function playHaljolAudio() {
+  const audioHaljol = document.getElementById('audioHaljol');
+  const audioAlert = document.getElementById('audioAlert');
+  
+  if (audioHaljol && audioAlert) {
+    audioHaljol.pause();
+    audioHaljol.currentTime = 0;
+    audioAlert.pause();
+    audioAlert.currentTime = 0;
+
+    audioHaljol.onended = () => {
+      audioAlert.play().catch(err => console.log("Autoplay alert dicegah:", err));
+    };
+
+    audioHaljol.play().catch(err => console.log("Autoplay haljol dicegah:", err));
+  }
+}
+
+const DB = {
+  _cache: [],
+  getAll() {
+    if (modeFirebaseHaljol) return this._cache;
+    return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+  },
+  save(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    this._cache = data;
+    this.notify();
+  },
+  addReport(report) {
+    const list = this.getAll();
+    const nextNumber = list.length + 1;
+    const formattedNum = String(nextNumber).padStart(4, '0');
+    const now = new Date();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const year = now.getFullYear();
+
+    const newReport = {
+      id: `AMK/${formattedNum}/${month}/${year}`,
+      createdAt: now.getTime(),
+      status: 'Baru',
+      ...report
+    };
+    if (modeFirebaseHaljol && fbRefHaljol) {
+      fbRefHaljol.child(newReport.id.replace(/\//g, '_')).set(newReport).then(() => {
+        if (newReport.kategori === 'Gangguan PERKA' || newReport.kategori === 'Pelecehan Seksual') {
+          playHaljolAudio();
+        }
+      }).catch(err => toast('Gagal mengirim ke server: ' + err.message));
+    } else {
+      list.unshift(newReport);
+      this.save(list);
+      if (newReport.kategori === 'Gangguan PERKA' || newReport.kategori === 'Pelecehan Seksual') {
+        playHaljolAudio();
+      }
+    }
+    return newReport;
+  },
+  updateStatus(id, newStatus) {
+    const safeIdKey = id.replace(/\//g, '_');
+    if (modeFirebaseHaljol && fbRefHaljol) {
+      fbRefHaljol.child(safeIdKey).update({ status: newStatus }).catch(err => toast('Gagal update status: ' + err.message));
+    } else {
+      const list = this.getAll();
+      const item = list.find(r => r.id === id);
+      if (item) { item.status = newStatus; this.save(list); }
+    }
+  },
+  promptRemoveReport(id) {
+    pendingDeleteId = id;
+    document.getElementById('adminDeletePin').value = '';
+    document.getElementById('pinModal').classList.remove('hidden');
+    document.getElementById('adminDeletePin').focus();
+  },
+  notify() {
+    window.dispatchEvent(new CustomEvent('db-updated'));
+    dbChannel.postMessage({ type: 'DB_CHANGED', timestamp: Date.now() });
+  },
+  initSync() {
+    dbChannel.onmessage = (e) => { if (e.data?.type === 'DB_CHANGED') { renderAll(); } };
+    window.addEventListener('storage', (e) => { if (e.key === STORAGE_KEY && !modeFirebaseHaljol) { renderAll(); } });
+    window.addEventListener('db-updated', () => { renderAll(); });
+    initFirebaseHaljol();
+  }
+};
+
+function closePinModal() {
+  document.getElementById('pinModal').classList.add('hidden');
+  pendingDeleteId = null;
+}
+
+document.getElementById('pinForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const pinInput = document.getElementById('adminDeletePin').value.trim();
+  if (pinInput !== "2828") {
+    toast("PIN ADMIN salah! Data tidak dapat dihapus.");
+    return;
+  }
+  
+  if (pendingDeleteId) {
+    const safeIdKey = pendingDeleteId.replace(/\//g, '_');
+    if (modeFirebaseHaljol && fbRefHaljol) {
+      fbRefHaljol.child(safeIdKey).remove().then(() => {
+        toast('Laporan berhasil dihapus');
+        closePinModal();
+      }).catch(err => toast('Gagal menghapus: ' + err.message));
+    } else {
+      let list = DB.getAll();
+      list = list.filter(r => r.id !== pendingDeleteId);
+      DB.save(list);
+      toast('Laporan berhasil dihapus');
+      closePinModal();
+    }
+  }
+});
+
+function initFirebaseHaljol(){
+  if (!configLengkapHaljol()) return;
+  try {
+    if (!firebase.apps || !firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG_HALJOL);
+    fbRefHaljol = firebase.database().ref(DB_PATH_HALJOL);
+    modeFirebaseHaljol = true;
+    
+    let isInitialLoad = true;
+    fbRefHaljol.on('value', (snap) => {
+      const val = snap.val();
+      const list = [];
+      if (val && typeof val === 'object') {
+        Object.keys(val).forEach(k => list.push(val[k]));
+        list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      }
+      
+      if (!isInitialLoad && list.length > DB._cache.length) {
+        const latestReport = list[0];
+        if (latestReport && (latestReport.kategori === 'Gangguan PERKA' || latestReport.kategori === 'Pelecehan Seksual') && (Date.now() - latestReport.createdAt < 10000)) {
+          playHaljolAudio();
+        }
+      }
+
+      DB._cache = list;
+      isInitialLoad = false;
+      renderAll();
+    });
+  } catch(err) {
+    modeFirebaseHaljol = false;
+    fbRefHaljol = null;
+    renderAll();
+  }
+}
+
+function setPeriod(p) {
+  currentPeriod = p;
+  ['Hari', 'Bulan', 'Tahun', 'Semua'].forEach(item => {
+    const btn = document.getElementById('pBtn' + item);
+    if(btn) btn.classList.toggle('active', item.toLowerCase() === p);
+  });
+  
+  const textMap = {
+    hari: 'Menampilkan data periode: Hari Ini',
+    bulan: 'Menampilkan data periode: Bulan Ini',
+    tahun: 'Menampilkan data periode: Tahun Ini',
+    semua: 'Menampilkan data periode: Semua Waktu'
+  };
+  document.getElementById('periodSummaryText').textContent = textMap[p];
+  renderAll();
+}
+
+function filterByPeriod(reports) {
+  const now = new Date();
+  const todayStr = now.toISOString().slice(0,10);
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+
+  return reports.filter(r => {
+    if (!r.createdAt && !r.tanggal) return true;
+    const rDate = r.tanggal ? new Date(r.tanggal) : new Date(r.createdAt);
+    
+    if (currentPeriod === 'hari') {
+      return (r.tanggal === todayStr) || (rDate.toISOString().slice(0,10) === todayStr);
+    } else if (currentPeriod === 'bulan') {
+      return rDate.getMonth() === currentMonth && rDate.getFullYear() === currentYear;
+    } else if (currentPeriod === 'tahun') {
+      return rDate.getFullYear() === currentYear;
+    }
+    return true;
+  });
+}
+
+function updateHariOtomatis() {
+  const tanggalInput = document.getElementById('tanggal').value;
+  const hariInput = document.getElementById('hari');
+  if (tanggalInput) {
+    const parts = tanggalInput.split('-');
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    hariInput.value = d.toLocaleDateString('id-ID', { weekday: 'long' });
+  } else {
+    hariInput.value = '';
+  }
+}
+
+function importFromXLS(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  
+  reader.onload = function(e) {
+    try {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const firstSheetName = workbook.SheetNames[0];
+      const worksheet = workbook.Sheets[firstSheetName];
+      const jsonRows = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false });
+
+      if (!jsonRows || jsonRows.length === 0) {
+        return toast('File XLS kosong atau tidak terbaca');
+      }
+      
+      let importedCount = 0;
+      for (let i = 0; i < jsonRows.length; i++) {
+        const cols = jsonRows[i];
+        if (!cols || cols.length < 2) continue;
+        
+        const firstColStr = String(cols[0] || '').trim().toLowerCase();
+        if (firstColStr === 'id' || firstColStr === 'no' || firstColStr.includes('laporan')) {
+          continue;
+        }
+
+        const id = cols[0] ? String(cols[0]).trim() : '';
+        const tanggal = cols[1] ? String(cols[1]).trim() : new Date().toISOString().slice(0,10);
+        const hari = cols[2] ? String(cols[2]).trim() : '-';
+        const pukul = cols[3] ? String(cols[3]).trim() : '00:00';
+        const judul = cols[4] ? String(cols[4]).trim() : (cols[1] ? 'Laporan ' + cols[1] : 'Tanpa Judul');
+        const namaPelapor = cols[5] ? String(cols[5]).trim() : '-';
+        const kategori = cols[6] ? String(cols[6]).trim() : 'Kamtib';
+        const lokasi = cols[7] ? String(cols[7]).trim() : '-';
+        const deskripsi = cols[8] ? String(cols[8]).trim() : '-';
+        const status = cols[9] ? String(cols[9]).trim() : 'Baru';
+
+        const reportData = {
+          id: id.startsWith('AMK/') ? id : `AMK/IMP/${Date.now()}/${i}`,
+          createdAt: tanggal ? new Date(tanggal).getTime() : Date.now(),
+          judul: judul,
+          namaPelapor: namaPelapor,
+          tanggal: tanggal,
+          hari: hari,
+          pukul: pukul,
+          lokasi: lokasi,
+          kategori: kategori,
+          deskripsi: deskripsi,
+          status: status
+        };
+
+        if (modeFirebaseHaljol && fbRefHaljol) {
+          fbRefHaljol.child(reportData.id.replace(/\//g, '_')).set(reportData);
+        } else {
+          const list = DB.getAll();
+          if (!list.some(r => r.id === reportData.id)) {
+            list.unshift(reportData);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+          }
+        }
+        importedCount++;
+      }
+
+      if (importedCount === 0) {
+        return toast('Tidak ada baris data valid yang ditemukan dalam file XLS.');
+      }
+
+      DB.notify();
+      toast(`Berhasil mengimpor ${importedCount} data laporan!`);
+    } catch(err) {
+      toast('Gagal memproses file XLS: ' + err.message);
+    } finally {
+      event.target.value = '';
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function exportToXLS() {
+  const reports = DB.getAll();
+  if (!reports.length) return toast('Tidak ada data laporan');
+  let tableHtml = `<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40"><head><meta charset="UTF-8"></head><body><table border="1"><thead><tr><th>ID</th><th>Tanggal</th><th>Hari</th><th>Jam</th><th>Judul</th><th>Nama Pelapor</th><th>Kategori</th><th>Lokasi</th><th>Kronologi</th><th>Status</th></tr></thead><tbody>`;
+  reports.forEach(r => {
+    tableHtml += `<tr><td>${esc(r.id)}</td><td>${esc(r.tanggal)}</td><td>${esc(r.hari)}</td><td>${esc(r.pukul)}</td><td>${esc(r.judul)}</td><td>${esc(r.namaPelapor)}</td><td>${esc(r.kategori)}</td><td>${esc(r.lokasi)}</td><td>${esc(r.deskripsi)}</td><td>${esc(r.status)}</td></tr>`;
+  });
+  tableHtml += `</tbody></table></body></html>`;
+  const blob = new Blob([tableHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  downloadBlob(blob, `Laporan_SIPK_${new Date().toISOString().slice(0,10)}.xls`);
+  toast('XLS berhasil diunduh');
+}
+
+function downloadBlob(blob, filename) {
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.setAttribute('download', filename);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+const cats = ['Gangguan PERKA', 'Kamtib', 'Pencurian', 'Pelecehan Seksual', 'Merokok Dalam KA', 'Penumpang Sakit', 'PNP Tidak Bertiket', 'Pelemparan KA', 'Penemperan KA'];
+let selectedCat = '';
+
+function esc(s){ return String(s??'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m])); }
+function badge(s){ return '<span class="badge '+(s==='Baru'?'baru':s==='Diproses'?'proses':'selesai')+'">'+esc(s)+'</span>'; }
+
+function showPage(p){
+  if (p === 'admin' && !isAdminLoggedIn) { openLogin(); return; }
+  ['public','admin','report'].forEach(x => document.getElementById(x+'Page').classList.toggle('hidden', x!==p));
+  document.getElementById('navPublic').classList.toggle('active', p==='public');
+  document.getElementById('navAdmin').classList.toggle('active', p==='admin');
+  document.getElementById('navReport').classList.toggle('active', p==='report');
+  renderAll();
+}
+
+function filtered(list, fs, fc, q){
+  q = (q||'').toLowerCase();
+  return list.filter(r => (!fs || r.status===fs) && (!fc || r.kategori===fc) && (!q || [r.judul,r.namaPelapor,r.deskripsi,r.hari,r.kategori,r.lokasi].join(' ').toLowerCase().includes(q)));
+}
+
+function renderCategoryChart(reports){
+  const container = document.getElementById('categoryChart');
+  if(!container) return;
+
+  const counts = {};
+  cats.forEach(c => counts[c] = 0);
+  reports.forEach(r => {
+    const c = (r.kategori || '').trim();
+    if(counts[c] !== undefined) counts[c]++;
+    else if(c) counts[c] = (counts[c] || 0) + 1;
+  });
+
+  const dataEntries = Object.entries(counts);
+  const maxVal = Math.max(...dataEntries.map(e => e[1]), 1);
+  const chartTotalEl = document.getElementById('chartTotalKategori');
+  if(chartTotalEl) chartTotalEl.textContent = dataEntries.length + ' kategori';
+
+  if(!reports.length){
+    container.innerHTML = '<div class="empty">Belum ada data laporan pada periode ini.</div>';
+    return;
+  }
+
+  container.innerHTML = dataEntries.map(([catName, count]) => {
+    const heightPct = Math.round((count / maxVal) * 100);
+    return `
+      <div class="cat-bar-group" title="${esc(catName)}: ${count} laporan">
+        <div class="cat-val">${count}</div>
+        <div class="cat-bar-wrapper">
+          <div class="cat-bar-fill" style="height: ${heightPct}%;"></div>
+        </div>
+        <div class="cat-label">${esc(catName)}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderTrendChart(reports){
+  const container = document.getElementById('trendChart');
+  if(!container) return;
+
+  const daysData = [];
+  for(let i = 6; i >= 0; i--){
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().slice(0,10);
+    const dayName = d.toLocaleDateString('id-ID', { weekday: 'short' });
+    daysData.push({ dateStr, dayName, count: 0 });
+  }
+
+  reports.forEach(r => {
+    if(!r.createdAt && !r.tanggal) return;
+    const rDate = r.tanggal ? r.tanggal : new Date(r.createdAt).toISOString().slice(0,10);
+    const found = daysData.find(item => item.dateStr === rDate);
+    if(found) found.count++;
+  });
+
+  const maxVal = Math.max(...daysData.map(d => d.count), 1);
+  const svgWidth = 600;
+  const svgHeight = 140;
+  const paddingX = 35;
+  const paddingY = 20;
+  const usableWidth = svgWidth - (paddingX * 2);
+  const usableHeight = svgHeight - (paddingY * 2);
+
+  const points = daysData.map((item, index) => {
+    const x = paddingX + (index / (daysData.length - 1)) * usableWidth;
+    const y = svgHeight - paddingY - (item.count / maxVal) * usableHeight;
+    return { x, y, count: item.count, dayName: item.dayName };
+  });
+
+  const pointsStr = points.map(p => `${p.x},${p.y}`).join(' ');
+  const firstX = points[0].x;
+  const lastX = points[points.length - 1].x;
+  const bottomY = svgHeight - 5;
+  const areaPathStr = `M ${firstX} ${bottomY} L ${pointsStr} L ${lastX} ${bottomY} Z`;
+
+  container.innerHTML = `
+    <div class="trend-svg-wrap">
+      <svg viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none" style="width:100%; height:100%; overflow:visible;">
+        <defs>
+          <linearGradient id="trendGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2563eb" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#2563eb" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+        <path d="${areaPathStr}" fill="url(#trendGradient)" />
+        <polyline fill="none" stroke="#2563eb" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${pointsStr}" />
+        ${points.map(p => `
+          <g>
+            <circle cx="${p.x}" cy="${p.y}" r="4" fill="#ffffff" stroke="#2563eb" stroke-width="2" />
+            <text x="${p.x}" y="${p.y - 8}" fill="#0f172a" font-size="9" font-weight="700" text-anchor="middle">${p.count}</text>
+          </g>
+        `).join('')}
+      </svg>
+    </div>
+    <div class="trend-labels-row">
+      ${daysData.map(d => `<div class="trend-label-item">${d.dayName}</div>`).join('')}
+    </div>
+  `;
+}
+
+function renderMonthlyChart(reports){
+  const container = document.getElementById('monthlyChart');
+  if(!container) return;
+
+  const currentYear = new Date().getFullYear();
+  const months = [
+    { name: 'Jan', index: 0 }, { name: 'Feb', index: 1 }, { name: 'Mar', index: 2 },
+    { name: 'Apr', index: 3 }, { name: 'Mei', index: 4 }, { name: 'Jun', index: 5 },
+    { name: 'Jul', index: 6 }, { name: 'Agu', index: 7 }, { name: 'Sep', index: 8 },
+    { name: 'Okt', index: 9 }, { name: 'Nov', index: 10 }, { name: 'Des', index: 11 }
+  ];
+
+  const monthlyCounts = months.map(m => ({ ...m, count: 0 }));
+
+  reports.forEach(r => {
+    if(!r.createdAt && !r.tanggal) return;
+    const rDate = r.tanggal ? new Date(r.tanggal) : new Date(r.createdAt);
+    if(rDate.getFullYear() === currentYear) {
+      const mIndex = rDate.getMonth();
+      const targetMonth = monthlyCounts.find(m => m.index === mIndex);
+      if(targetMonth) targetMonth.count++;
+    }
+  });
+
+  const maxVal = Math.max(...monthlyCounts.map(m => m.count), 1);
+  const svgWidth = 600;
+  const svgHeight = 140;
+  const paddingX = 30;
+  const paddingY = 20;
+  const usableWidth = svgWidth - (paddingX * 2);
+  const usableHeight = svgHeight - (paddingY * 2);
+
+  const points = monthlyCounts.map((item, index) => {
+    const x = paddingX + (index / (monthlyCounts.length - 1)) * usableWidth;
+    const y = svgHeight - paddingY - (item.count / maxVal) * usableHeight;
+    return { x, y, count: item.count, name: item.name };
+  });
+
+  const pointsStr = points.map(p => `${p.x},${p.y}`).join(' ');
+  const firstX = points[0].x;
+  const lastX = points[points.length - 1].x;
+  const bottomY = svgHeight - 5;
+  const areaPathStr = `M ${firstX} ${bottomY} L ${pointsStr} L ${lastX} ${bottomY} Z`;
+
+  container.innerHTML = `
+    <div class="trend-svg-wrap">
+      <svg viewBox="0 0 ${svgWidth} ${svgHeight}" preserveAspectRatio="none" style="width:100%; height:100%; overflow:visible;">
+        <defs>
+          <linearGradient id="monthlyGradient" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#0891b2" stop-opacity="0.25"/>
+            <stop offset="100%" stop-color="#0891b2" stop-opacity="0.0"/>
+          </linearGradient>
+        </defs>
+        <path d="${areaPathStr}" fill="url(#monthlyGradient)" />
+        <polyline fill="none" stroke="#0891b2" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="${pointsStr}" />
+        ${points.map(p => `
+          <g>
+            <circle cx="${p.x}" cy="${p.y}" r="3.5" fill="#ffffff" stroke="#0891b2" stroke-width="2" />
+            <text x="${p.x}" y="${p.y - 8}" fill="#0f172a" font-size="8.5" font-weight="700" text-anchor="middle">${p.count}</text>
+          </g>
+        `).join('')}
+      </svg>
+    </div>
+    <div class="trend-labels-row">
+      ${monthlyCounts.map(m => `<div class="trend-label-item" style="font-size:9px;">${m.name}</div>`).join('')}
+    </div>
+  `;
+}
+
+function render(){
+  const allReports = DB.getAll();
+  const reports = filterByPeriod(allReports);
+
+  const counts = { Baru: 0, Diproses: 0, Selesai: 0 };
+  reports.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+  
+  document.getElementById('kTotal').textContent = reports.length;
+  document.getElementById('kBaru').textContent = counts.Baru;
+  document.getElementById('kProses').textContent = counts.Diproses;
+  document.getElementById('kSelesai').textContent = counts.Selesai;
+
+  const filterStatusEl = document.getElementById('filterStatus');
+  const filterCatEl = document.getElementById('filterCat');
+  const searchEl = document.getElementById('search');
+
+  const list = filtered(reports, filterStatusEl?.value, filterCatEl?.value, searchEl?.value).sort((a,b) => b.createdAt - a.createdAt);
+  
+  const reportListEl = document.getElementById('reportList');
+  if(reportListEl) {
+    reportListEl.innerHTML = list.length ? list.map(r => `
+      <article class="report">
+        <div class="rhead"><div class="rtitle">${esc(r.judul)}</div>${badge(r.status)}</div>
+        <div class="meta"><span class="cat">${esc(r.kategori)}</span> • 👤 <span style="color:var(--text);font-weight:600;">${esc(r.namaPelapor||'-')}</span> • 📍 <span class="loc-badge">${esc(r.lokasi||'-')}</span> • ${esc(r.hari)}, ${esc(r.tanggal)} ${esc(r.pukul)}</div>
+        <div class="desc">${esc(r.deskripsi)}</div>
+      </article>
+    `).join('') : '<div class="empty">Tidak ada laporan ditemukan pada filter ini.</div>';
+  }
+
+  renderCategoryChart(reports);
+  renderTrendChart(reports);
+  renderMonthlyChart(allReports);
+}
+
+function renderAdmin(){
+  const reports = DB.getAll();
+  const counts = { Baru: 0, Diproses: 0, Selesai: 0 };
+  reports.forEach(r => counts[r.status] = (counts[r.status] || 0) + 1);
+  
+  document.getElementById('aBaru').textContent = counts.Baru;
+  document.getElementById('aProses').textContent = counts.Diproses;
+  document.getElementById('aSelesai').textContent = counts.Selesai;
+
+  const list = filtered(reports, document.getElementById('aFilterStatus')?.value, document.getElementById('aFilterCat')?.value, '').sort((a,b) => b.createdAt - a.createdAt);
+  
+  const adminTable = document.getElementById('adminTable');
+  if(adminTable) {
+    adminTable.innerHTML = list.length ? list.map(r => `
+      <tr>
+        <td><b>${esc(r.id)}</b><br><span class="meta">${esc(r.hari)}, ${esc(r.tanggal)} ${esc(r.pukul)}</span></td>
+        <td><b>${esc(r.judul)}</b><br><span class="meta">📍 ${esc(r.lokasi)}</span></td>
+        <td>${esc(r.kategori)}</td>
+        <td>${esc(r.namaPelapor || '-')}</td>
+        <td>${badge(r.status)}</td>
+        <td>
+          <select onchange="DB.updateStatus('${esc(r.id)}', this.value); toast('Status diperbarui');">
+            <option ${r.status==='Baru'?'selected':''}>Baru</option>
+            <option ${r.status==='Diproses'?'selected':''}>Diproses</option>
+            <option ${r.status==='Selesai'?'selected':''}>Selesai</option>
+          </select>
+        </td>
+        <td>
+          <button class="btn danger" style="padding:6px 10px; font-size:10px;" onclick="DB.promptRemoveReport('${esc(r.id)}')">🔑 Hapus (ADMIN)</button>
+        </td>
+      </tr>
+    `).join('') : '<tr><td colspan="7" class="empty">Database masih kosong.</td></tr>';
+  }
+}
+
+function renderAll(){
+  render();
+  renderAdmin();
+}
+
+function initCats(){
+  const el = document.getElementById('cats');
+  if(!el) return;
+  el.innerHTML = '';
+  cats.forEach(c => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'catbtn'; b.textContent = c;
+    b.onclick = () => {
+      selectedCat = c;
+      document.querySelectorAll('.catbtn').forEach(x => x.classList.remove('active'));
+      b.classList.add('active');
+    };
+    el.appendChild(b);
+  });
+}
+
+function resetFormCustom(){
+  setTimeout(() => {
+    selectedCat = '';
+    document.querySelectorAll('.catbtn').forEach(x => x.classList.remove('active'));
+    document.getElementById('hari').value = '';
+  }, 0);
+}
+
+function toast(t){
+  const toastEl = document.getElementById('toast');
+  if(!toastEl) return;
+  toastEl.textContent = t; toastEl.style.display = 'block';
+  clearTimeout(window.tt);
+  window.tt = setTimeout(() => toastEl.style.display = 'none', 2500);
+}
+
+function tick(){
+  const d = new Date();
+  const clockEl = document.getElementById('clock');
+  const dateEl = document.getElementById('date');
+  if(clockEl) clockEl.textContent = d.toLocaleTimeString('id-ID') + ' WIB';
+  if(dateEl) dateEl.textContent = d.toLocaleDateString('id-ID', {weekday:'long', day:'2-digit', month:'long', year:'numeric'});
+}
+
+const reportForm = document.getElementById('reportForm');
+if(reportForm) {
+  reportForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    if(!selectedCat) return toast('Pilih kategori laporan terlebih dahulu');
+    const fotoInput = document.getElementById('foto');
+    const fotoName = fotoInput && fotoInput.files.length > 0 ? fotoInput.files[0].name : '';
+
+    DB.addReport({
+      judul: document.getElementById('judul').value.trim(),
+      namaPelapor: document.getElementById('namaPelapor').value.trim(),
+      tanggal: document.getElementById('tanggal').value,
+      hari: document.getElementById('hari').value.trim(),
+      pukul: document.getElementById('pukul').value,
+      lokasi: document.getElementById('lokasi').value.trim(),
+      kategori: selectedCat,
+      deskripsi: document.getElementById('deskripsi').value.trim(),
+      fotoName: fotoName
+    });
+
+    e.target.reset();
+    resetFormCustom();
+    toast('Laporan berhasil dikirim');
+    showPage('public');
+  });
+}
+
+DB.initSync();
+initCats();
+tick();
+setInterval(tick, 1000);
+updateAuthUI();
+renderAll();
+</script>
+</body>
+</html>
